@@ -1,0 +1,21 @@
+{
+  "name": "balmun-coach",
+  "version": "0.1.0",
+  "private": true,
+  "description": "발문 코치 - 수업 발문 분석 엔진 (2단계: 분석 스크립트)",
+  "type": "module",
+  "scripts": {
+    "analyze": "tsx src/run.ts"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "js-yaml": "^4.1.0",
+    "openai": "^4.68.0"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^22.7.5",
+    "tsx": "^4.19.1",
+    "typescript": "^5.6.3"
+  }
+}
