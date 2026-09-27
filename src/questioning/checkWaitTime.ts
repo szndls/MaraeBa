@@ -1,4 +1,4 @@
-import type { NormalizedTranscript } from "../types/transcript.js";
+import type { NormalizedTranscript, TranscriptSegment } from "../types/transcript.js";
 import type { ClassifiedQuestion, QuestioningFinding } from "../types/questioning.js";
 import { getCriterion, getQuestionTypes, severityRank } from "../criteria/loadQuestioningCriteria.js";
 
@@ -7,6 +7,17 @@ interface ThresholdCondition {
   description: string;
   numbers: number[];
   mentionedTypes: string[];
+}
+
+export interface WaitTimeEvaluation {
+  question: ClassifiedQuestion;
+  nextSegment: TranscriptSegment | null;
+  /** null이면 대기시간을 계산하지 않은 경우 (다음 발화가 교사 → Q3에서만 다룸, 또는 다음 발화 없음) */
+  waitTimeSec: number | null;
+  skippedReason: string | null;
+  matchedConditions: ThresholdCondition[];
+  /** matchedConditions 중 가장 무거운 것의 key. 없으면 null(문제 없음) */
+  severity: string | null;
 }
 
 /**
@@ -35,42 +46,72 @@ function conditionMatches(cond: ThresholdCondition, waitTimeSec: number, questio
   );
 }
 
-export function checkWaitTime(
+/** 발문 전체에 대한 대기시간 평가 목록을 만든다 (지적 여부와 무관하게 전부 포함) */
+export function evaluateWaitTimes(
   transcript: NormalizedTranscript,
   questions: ClassifiedQuestion[]
-): QuestioningFinding[] {
+): WaitTimeEvaluation[] {
   const criterion = getCriterion("Q5");
   if (!criterion.thresholds) {
     throw new Error("criteria/questioning-criteria.json의 Q5에 thresholds가 없습니다.");
   }
   const conditions = parseThresholds(criterion.thresholds);
 
-  const findings: QuestioningFinding[] = [];
+  return questions.map((question) => {
+    const nextSegment = transcript.segments[question.segment.index + 1] ?? null;
 
-  for (const question of questions) {
-    const nextSegment = transcript.segments[question.segment.index + 1];
-    if (!nextSegment) continue; // 다음 발화 없음
-    if (nextSegment.speaker !== "student") continue; // 교사면 Q3에서만 다룸 (exception)
+    if (!nextSegment) {
+      return {
+        question,
+        nextSegment: null,
+        waitTimeSec: null,
+        skippedReason: "다음 발화 없음(수업의 마지막 발화)",
+        matchedConditions: [],
+        severity: null,
+      };
+    }
+    if (nextSegment.speaker !== "student") {
+      return {
+        question,
+        nextSegment,
+        waitTimeSec: null,
+        skippedReason: "다음 발화가 교사 — Q3(자문자답)에서만 다룸",
+        matchedConditions: [],
+        severity: null,
+      };
+    }
 
     const waitTimeSec = Math.max(0, nextSegment.start - question.segment.end);
     const matched = conditions.filter((c) => conditionMatches(c, waitTimeSec, question.questionType));
-    if (matched.length === 0) continue;
+    const severity =
+      matched.length === 0
+        ? null
+        : matched.reduce((a, b) => (severityRank(b.key) > severityRank(a.key) ? b : a)).key;
 
-    // 여러 조건이 겹치면 가장 무거운 것 하나를 severity로 쓰고, 근거에는 전부 적는다
-    const heaviest = matched.reduce((a, b) => (severityRank(b.key) > severityRank(a.key) ? b : a));
+    return { question, nextSegment, waitTimeSec, skippedReason: null, matchedConditions: matched, severity };
+  });
+}
 
-    const reasonParts = matched.map((c) => `${c.key}(${c.description})`);
-    const reason = `대기 시간 ${waitTimeSec.toFixed(1)}초, 발문 유형 "${question.questionType}" — 해당 조건: ${reasonParts.join("; ")}`;
+export function checkWaitTime(
+  transcript: NormalizedTranscript,
+  questions: ClassifiedQuestion[]
+): QuestioningFinding[] {
+  const criterion = getCriterion("Q5");
+  const evaluations = evaluateWaitTimes(transcript, questions);
 
-    findings.push({
-      criterionId: "Q5",
-      criterionName: criterion.name,
-      severity: heaviest.key,
-      segments: [question.segment, nextSegment],
-      reason,
-      detect: "code",
+  return evaluations
+    .filter((e) => e.severity !== null && e.nextSegment !== null && e.waitTimeSec !== null)
+    .map((e) => {
+      const reasonParts = e.matchedConditions.map((c) => `${c.key}(${c.description})`);
+      const reason = `대기 시간 ${e.waitTimeSec!.toFixed(1)}초, 발문 유형 "${e.question.questionType}" — 해당 조건: ${reasonParts.join("; ")}`;
+
+      return {
+        criterionId: "Q5",
+        criterionName: criterion.name,
+        severity: e.severity!,
+        segments: [e.question.segment, e.nextSegment!],
+        reason,
+        detect: "code" as const,
+      };
     });
-  }
-
-  return findings;
 }

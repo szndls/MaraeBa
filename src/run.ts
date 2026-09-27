@@ -9,7 +9,7 @@ import type { VocabFinding } from "./types/vocab.js";
 import { extractQuestionCandidates } from "./questioning/extractQuestions.js";
 import { classifyAndCheckQuestions } from "./questioning/classifyAndCheckQuestions.js";
 import { checkSelfAnswer } from "./questioning/checkSelfAnswer.js";
-import { checkWaitTime } from "./questioning/checkWaitTime.js";
+import { checkWaitTime, evaluateWaitTimes } from "./questioning/checkWaitTime.js";
 import { extractResponseEvents } from "./questioning/extractResponseEvents.js";
 import { checkResponseHandling } from "./questioning/checkResponseHandling.js";
 import type { QuestioningFinding } from "./types/questioning.js";
@@ -65,7 +65,9 @@ async function main() {
 
   const q3Findings = await checkSelfAnswer(transcript, questions);
   const q5Findings = checkWaitTime(transcript, questions);
-  const responseEvents = extractResponseEvents(transcript);
+  const waitTimeEvaluations = evaluateWaitTimes(transcript, questions);
+  const confirmedQuestionIndices = new Set(questions.map((q) => q.segment.index));
+  const responseEvents = extractResponseEvents(transcript, confirmedQuestionIndices);
   const q678Findings = await checkResponseHandling(responseEvents);
 
   const questioningFindings: QuestioningFinding[] = [
@@ -77,12 +79,26 @@ async function main() {
 
   await writeIntermediate("04-questions.json", questions);
   await writeIntermediate("04-questioning-findings.json", questioningFindings);
+  await writeIntermediate("04-wait-time-by-question.json", waitTimeEvaluations);
 
   console.log("\n=== 4단계 결과 ===");
   console.log("발문 유형 분류:");
   for (const q of questions) {
     console.log(`  [${q.segment.index}] (${q.questionType}) "${q.segment.text}"`);
   }
+
+  console.log("\nQ5 대기 시간 — 발문별 전체 목록:");
+  for (const e of waitTimeEvaluations) {
+    const start = e.question.segment.start;
+    if (e.waitTimeSec === null) {
+      console.log(`  [${e.question.segment.index}] (${start}초) 대기시간 계산 안 함 — ${e.skippedReason}`);
+    } else {
+      console.log(
+        `  [${e.question.segment.index}] (${start}초) 대기 ${e.waitTimeSec.toFixed(1)}초, 유형 "${e.question.questionType}" → ${e.severity ?? "해당 없음"}`
+      );
+    }
+  }
+
   console.log(`\n지적사항 총 ${questioningFindings.length}건`);
   for (const id of ["Q1", "Q2", "Q3", "Q4", "Q5", "Q6", "Q7", "Q8", "Q9"]) {
     printQuestioningGroup(questioningFindings, id);
