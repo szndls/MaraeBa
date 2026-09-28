@@ -226,6 +226,9 @@ export async function checkResponseHandling(events: ResponseEvent[]): Promise<Qu
         segments: relevantSegments,
         reason: reasons[id],
         detect: "llm",
+        targetQuestionIndex: c.event.precedingQuestionSegment?.index ?? null,
+        // 고쳐야 할 반응은 보통 응답 구간의 첫 발화(학생 답 직후 첫 반응)다.
+        targetReactionSegmentIndex: c.event.responseWindowSegments[0]?.index ?? null,
       });
     }
   }

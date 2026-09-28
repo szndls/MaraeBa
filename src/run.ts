@@ -13,6 +13,7 @@ import { checkWaitTime, evaluateWaitTimes } from "./questioning/checkWaitTime.js
 import { extractResponseEvents } from "./questioning/extractResponseEvents.js";
 import { checkResponseHandling } from "./questioning/checkResponseHandling.js";
 import type { QuestioningFinding } from "./types/questioning.js";
+import { generateImprovements } from "./suggestions/generateImprovements.js";
 
 loadEnv({ path: ".env.local" });
 
@@ -126,6 +127,38 @@ async function main() {
   for (const id of ["Q1", "Q2", "Q3", "Q4", "Q5", "Q6", "Q7", "Q8", "Q9"]) {
     printQuestioningGroup(questioningFindings, id);
   }
+
+  console.log("\n[5단계] 개선안 생성");
+  const suggestions = await generateImprovements(
+    transcript,
+    questions,
+    questioningFindings,
+    vocabFindings,
+    conceptMatch,
+    waitTimeEvaluations
+  );
+  await writeIntermediate("05-suggestions.json", suggestions);
+
+  console.log(`\n=== 5단계 결과 === (지적 있는 발문 ${suggestions.length}개 중 개선안 생성)`);
+  for (const s of suggestions) {
+    console.log(`\n[${s.questionIndex}] "${s.originalQuestionText}"`);
+    console.log(`  대상 기준: ${s.criteriaAddressed.join(", ")}`);
+    if (s.revisedQuestionText) console.log(`  개선 발문: ${s.revisedQuestionText}`);
+    if (s.suggestedAction) console.log(`  개선 행동: ${s.suggestedAction}`);
+    if (s.exampleTeacherLine) console.log(`  교사 예시 대사: ${s.exampleTeacherLine}`);
+    for (const w of s.whatAndWhy) console.log(`  - ${w.criterionId}: ${w.what} (${w.why})`);
+    console.log(`  기대 반응: ${s.expectedStudentResponse}`);
+    if (s.targetReactionSegmentIndices.length > 0) {
+      console.log(`  고칠 반응 발화: [${s.targetReactionSegmentIndices.join(", ")}]`);
+    }
+    const v = s.validation;
+    const validationFlags: string[] = [];
+    if (v.regenerated) validationFlags.push("재생성됨");
+    if (v.stillFailingAfterRetry) validationFlags.push("⚠️ 재생성 후에도 검증 실패");
+    if (validationFlags.length > 0) console.log(`  검증: ${validationFlags.join(", ")} — ${v.notes.join("; ")}`);
+  }
+
+  await writeStabilitySnapshot(sourceFile, { stage: "05-suggestions", runAt: new Date().toISOString(), sourceFile, suggestions });
 
   console.log(`\n중간 결과 저장 위치: ${intermediateDir()}`);
   console.log(`반복 실행 기록 저장 위치: ${path.join(stabilityDir(), path.basename(sourceFile, path.extname(sourceFile)))}`);

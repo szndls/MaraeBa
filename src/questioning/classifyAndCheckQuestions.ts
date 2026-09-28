@@ -8,8 +8,9 @@ import {
   loadQuestioningCriteria,
 } from "../criteria/loadQuestioningCriteria.js";
 
-/** 사례당 필드가 많아서 한 번에 너무 많이 넣으면 LLM 품질이 떨어질 수 있어 묶음을 작게 유지한다. */
-const CHUNK_SIZE = 5;
+/** 사례당 필드가 많고 프롬프트가 길어서(유형 판단 원칙·대비 예시 포함) 한 번에 너무 많이
+ *  넣으면 LLM 품질이 떨어지는 게 관찰되어 묶음을 작게 유지한다. */
+const CHUNK_SIZE = 3;
 
 const QUESTION_LEVEL_CRITERIA_IDS = ["Q1", "Q2", "Q9"] as const;
 type QuestionLevelCriterionId = (typeof QUESTION_LEVEL_CRITERIA_IDS)[number];
@@ -47,6 +48,15 @@ function buildSystemPrompt(questionTypes: string[]): string {
 
   const q4 = getCriterion("Q4");
 
+  const contrastText = (file.question_type_scheme.contrast_examples ?? [])
+    .map((group) => {
+      const cases = group.cases
+        .map((c) => `    - "${c.text}" → ${c.type} (${c.why})`)
+        .join("\n");
+      return `  같은 어미 "${group.shared_ending}":\n${cases}`;
+    })
+    .join("\n");
+
   return `당신은 초등 수학 수업의 교사 발화 후보 목록을 검토하는 전문가입니다.
 각 후보는 물음표나 의문형 어미로 끝나서 "발문일 가능성이 있다"고 코드가 골라낸 것입니다.
 실제로 발문이 아닌 경우(예: 의문형 어미지만 질문이 아닌 서술)도 있으니, isQuestion으로 먼저 판단하세요.
@@ -67,6 +77,11 @@ isQuestion=true입니다. 존댓말 어미("요")가 빠진 구어체("~할까",
 [발문 유형 분류 (${file.question_type_scheme.name})]
 ${typeDescriptions}
 ${file.question_type_scheme.note}
+
+[유형 판단 원칙] ${file.question_type_scheme.judging_principle ?? ""}
+말투(어미)만 보고 유형을 정하지 마세요 — 학생이 실제로 머릿속에서 무엇을 해야 하는지가
+기준입니다. 같은 어미라도 유형이 다를 수 있는 예:
+${contrastText}
 
 isQuestion이 false이면 questionType은 그래도 가장 가까운 유형으로 채우되, 이후 결과에서는 제외됩니다.
 
@@ -263,6 +278,7 @@ export async function classifyAndCheckQuestions(
         segments: [candidate.segment],
         reason: flag.reason,
         detect: "llm",
+        targetQuestionIndex: candidate.segment.index,
       });
     }
 
@@ -286,6 +302,7 @@ export async function classifyAndCheckQuestions(
         segments: [candidate.segment],
         reason: `${result.q4AnswerAlreadyGiven.reason} / ${result.q4ExpectsYesNoOnly.reason} / ${result.q4EndsWithConfirmationTone.reason}`,
         detect: "llm",
+        targetQuestionIndex: candidate.segment.index,
       });
     }
   }

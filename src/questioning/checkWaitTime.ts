@@ -92,6 +92,28 @@ export function evaluateWaitTimes(
   });
 }
 
+/**
+ * Q5 지적에 대한 "몇 초 더 기다릴지" 조언을 코드로 계산한다 (LLM이 숫자를 지어내지 않도록).
+ * criteria 파일의 thresholds 숫자 중, 현재 대기시간보다 큰 것 중 가장 작은 값을
+ * "다음으로 넘어야 할 기준선"으로 본다. 5단계 개선안(Q5)에서 사용한다.
+ */
+export function computeWaitTimeAdvice(evaluation: WaitTimeEvaluation): string | null {
+  if (evaluation.waitTimeSec === null || evaluation.severity === null) return null;
+
+  const criterion = getCriterion("Q5");
+  if (!criterion.thresholds) return null;
+  const conditions = parseThresholds(criterion.thresholds);
+
+  const applicable = conditions.filter(
+    (c) => c.mentionedTypes.length === 0 || c.mentionedTypes.includes(evaluation.question.questionType)
+  );
+  const boundaries = applicable.flatMap((c) => c.numbers).filter((n) => n > evaluation.waitTimeSec!);
+  if (boundaries.length === 0) return null;
+
+  const target = Math.min(...boundaries);
+  return `발문 후 최소 ${target.toFixed(1)}초 이상 기다려 주세요 (지금 관찰된 대기 시간: ${evaluation.waitTimeSec.toFixed(1)}초).`;
+}
+
 export function checkWaitTime(
   transcript: NormalizedTranscript,
   questions: ClassifiedQuestion[]
@@ -112,6 +134,7 @@ export function checkWaitTime(
         segments: [e.question.segment, e.nextSegment!],
         reason,
         detect: "code" as const,
+        targetQuestionIndex: e.question.segment.index,
       };
     });
 }

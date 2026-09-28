@@ -11,8 +11,8 @@ AI 분류/판단에 쓰이는 **기준**을 담는 폴더입니다. 코드를 �
 | `concept-guess-guidelines.yaml` | 2단계 | 사용 중 — 개념 추측 기준 (임시, 자유 수정 가능) |
 | `vocab-detection-notes.yaml` | 3단계 | 사용 중 — "목록에 없는 어려운 어휘" LLM 판단 기준 |
 | `questioning-criteria.json` | 4단계 | 사용 중 — 발문 유형 분류(Blosser) + Q1~Q9 지적 기준 |
-| `suggestion-guidelines.yaml` | 5단계 | 미사용 — 기준 미확정 placeholder |
-| `lesson-criteria.json` | 6단계 | 미사용 — 초안 (4단계 구현 후 다듬을 예정) |
+| `improvement-guidelines.json` | 5단계 | 사용 중 — 개선안 톤/길이/기준별 방향 |
+| `lesson-criteria.json` | 6단계 | 미사용 — 초안 (5단계 구현 후 다듬을 예정) |
 
 ## math-terms.json 사용 방식
 
@@ -35,6 +35,18 @@ AI 분류/판단에 쓰이는 **기준**을 담는 폴더입니다. 코드를 �
   않는다. 숫자를 바꾸려면 이 파일의 문구만 고치면 된다.
 - `excluded` 배열에 있는 항목(지명 편중, wait_time_2, 교과서 문장 그대로 묻기, 같은 발문
   반복)은 이번 버전에 구현하지 않았다.
+
+## improvement-guidelines.json 사용 방식
+
+- 4단계 지적이 있는 발문마다 개선안 하나를 만든다 (지적이 여러 개면 전부 하나로 묶음).
+- Q1·Q2·Q4·Q9는 "개선 발문"(문장 재작성), Q3·Q5·Q6·Q7·Q8은 "개선 행동"(교사가 할 일 +
+  예시 대사)으로 나뉜다. `per_criterion_guidance`에서 기준별 방향을 정의한다.
+- Q5의 "몇 초 기다리기" 숫자는 LLM이 아니라 코드가 `questioning-criteria.json`의 Q5
+  임계값과 실제 대기시간으로 계산한다 (`src/questioning/checkWaitTime.ts`의
+  `computeWaitTimeAdvice`).
+- 개선 발문은 Q1·Q2·Q4·Q9 전체로 재분류 검증하고, 개선 발문·예시 대사 둘 다 3단계
+  "아직 모름 확정" 용어 포함 여부를 검사한다. 실패하면 1회만 재생성한다
+  (`validation.max_retry`).
 
 ## 수정 가능한 것 / 불가능한 것
 

@@ -31,6 +31,11 @@ export interface QuestioningCriteriaFile {
     name: string;
     types: Record<string, string>;
     note: string;
+    judging_principle?: string;
+    contrast_examples?: Array<{
+      shared_ending: string;
+      cases: Array<{ text: string; type: string; why: string }>;
+    }>;
   };
   question_candidate_endings: {
     note: string;

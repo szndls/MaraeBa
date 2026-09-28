@@ -143,6 +143,7 @@ export async function checkSelfAnswer(
       segments: [candidate.question.segment, candidate.nextSegment],
       reason: `(간격 ${candidate.gapSec.toFixed(1)}초) ${result.reason}`,
       detect: "code+llm",
+      targetQuestionIndex: candidate.question.segment.index,
     });
   }
 
