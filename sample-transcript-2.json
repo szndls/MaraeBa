@@ -1,0 +1,36 @@
+{
+  "meta": {
+    "title": "테스트용 가상 수업 전사본 2 (일반화 확인용)",
+    "grade": 5,
+    "source": "synthetic",
+    "time_unit": "seconds",
+    "purpose": "1번 전사본과 다른 표현으로 같은 기준이 잡히는지 확인. 일부 발문은 실제 STT처럼 물음표가 빠져 있음"
+  },
+  "segments": [
+    { "speaker": "teacher", "start": 0.0, "end": 5.0, "text": "자, 오늘은 배수 공부를 이어서 할 거예요. 3의 배수에는 뭐가 있었죠?" },
+    { "speaker": "student", "start": 5.6, "end": 7.0, "text": "3, 6, 9, 12요." },
+    { "speaker": "teacher", "start": 7.2, "end": 8.0, "text": "딩동댕~" },
+    { "speaker": "teacher", "start": 8.5, "end": 13.0, "text": "그럼 4의 배수도 말해 볼 사람" },
+    { "speaker": "student", "start": 17.0, "end": 18.5, "text": "4, 8, 12, 16이요." },
+    { "speaker": "teacher", "start": 19.0, "end": 20.0, "text": "훌륭해요!" },
+    { "speaker": "teacher", "start": 20.5, "end": 26.0, "text": "3의 배수와 4의 배수에 둘 다 있는 수를 뭐라고 할까" },
+    { "speaker": "student", "start": 29.0, "end": 30.0, "text": "공배수요." },
+    { "speaker": "teacher", "start": 30.3, "end": 31.0, "text": "그렇지." },
+    { "speaker": "teacher", "start": 31.5, "end": 34.0, "text": "그럼 가장 작은 공배수는 12잖아, 그치?" },
+    { "speaker": "student", "start": 34.6, "end": 35.0, "text": "네." },
+    { "speaker": "teacher", "start": 35.5, "end": 40.0, "text": "이걸 최소공배수라고 해요. 그럼 6과 8의 최소공배수는 뭘까요?" },
+    { "speaker": "student", "start": 41.0, "end": 42.0, "text": "14요." },
+    { "speaker": "teacher", "start": 42.3, "end": 46.0, "text": "아니야, 24가 답이야. 6의 배수랑 8의 배수를 써 보면 24가 처음으로 같아." },
+    { "speaker": "teacher", "start": 46.5, "end": 50.0, "text": "민준아, 4와 10의 최소공배수는 어떻게 구할 수 있을까?" },
+    { "speaker": "student", "start": 55.0, "end": 62.0, "text": "4의 배수를 쭉 쓰고 10의 배수를 쭉 써서 처음 같은 걸 찾으면 돼요. 20이요." },
+    { "speaker": "teacher", "start": 62.5, "end": 66.0, "text": "배수를 나란히 써서 비교한 방법이 좋네요." },
+    { "speaker": "teacher", "start": 66.5, "end": 70.0, "text": "다른 방법으로 구한 사람 있어요?" },
+    { "speaker": "student", "start": 76.0, "end": 80.0, "text": "저는 20부터 거꾸로 나눠 봤어요." },
+    { "speaker": "teacher", "start": 80.5, "end": 84.0, "text": "음, 거꾸로 나눠 봤다는 게 무슨 뜻인지 조금 더 말해 줄래?" },
+    { "speaker": "student", "start": 84.4, "end": 90.0, "text": "20을 4로 나눠도 되고 10으로 나눠도 되니까요." },
+    { "speaker": "teacher", "start": 90.5, "end": 91.0, "text": "그래서?" },
+    { "speaker": "student", "start": 92.5, "end": 95.0, "text": "그래서 20이 4랑 10 둘 다의 배수예요." },
+    { "speaker": "teacher", "start": 95.5, "end": 100.0, "text": "좋아. 사실 중학교 가면 소인수분해로 더 빨리 구해요." },
+    { "speaker": "teacher", "start": 100.5, "end": 106.0, "text": "오늘 배운 공배수를 생활에서 쓰는 경우를 짝이랑 이야기해 보세요." }
+  ]
+}

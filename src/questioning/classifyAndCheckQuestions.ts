@@ -1,23 +1,30 @@
 import type { QuestionCandidate, ClassifiedQuestion, QuestioningFinding } from "../types/questioning.js";
 import { getAnalysisModel, getOpenAIClient } from "../llm/client.js";
-import { requestBatchWithRetry } from "../llm/batchWithRetry.js";
-import { getCriterion, getQuestionTypes, loadQuestioningCriteria } from "../criteria/loadQuestioningCriteria.js";
+import { requestBatchInChunks } from "../llm/batchWithRetry.js";
+import {
+  getCriterion,
+  getQuestionTypes,
+  getRepresentativePhrases,
+  loadQuestioningCriteria,
+} from "../criteria/loadQuestioningCriteria.js";
 
-const QUESTION_LEVEL_CRITERIA_IDS = ["Q1", "Q2", "Q4", "Q9"] as const;
+/** 사례당 필드가 많아서 한 번에 너무 많이 넣으면 LLM 품질이 떨어질 수 있어 묶음을 작게 유지한다. */
+const CHUNK_SIZE = 5;
+
+const QUESTION_LEVEL_CRITERIA_IDS = ["Q1", "Q2", "Q9"] as const;
 type QuestionLevelCriterionId = (typeof QUESTION_LEVEL_CRITERIA_IDS)[number];
-
-/** criteria 파일의 description에 '...'로 인용된 예시 어미를 뽑아온다 (Q4: '~죠?','그렇지?','맞죠?') */
-function extractQuotedExamples(text: string): string[] {
-  return Array.from(text.matchAll(/'([^']+)'/g)).map((m) => m[1]);
-}
 
 function stripTrailingPunct(s: string): string {
   return s.replace(/[!?.]+$/u, "").trim();
 }
 
-/** Q4는 마지막 질문 문장이 실제로 이 어미들로 끝나는지 코드로 먼저 걸러서, LLM이
- *  근거 없이(어미가 전혀 없는데도) Q4로 판정하는 것을 막는다. */
-function isQ4EndingCandidate(text: string, patterns: string[]): boolean {
+/**
+ * Q4의 "확인형 어미" 구조 검사. criteria 파일의 representative_phrases(예: '~죠?',
+ * '그렇지?', '맞죠?', '그치?')로 끝나는지 코드로 확인한다. Q4는 이 구조 검사와 LLM의
+ * 의미 판단(답이 이미 들어있는가) 둘 다 만족해야 최종 성립한다 — "~죠?"로 끝나도
+ * 답이 안 들어있으면(예: "3의 배수에는 뭐가 있었죠?") Q4가 아니다.
+ */
+function endsWithConfirmationEnding(text: string, patterns: string[]): boolean {
   const trimmed = stripTrailingPunct(text);
   return patterns.some((p) => trimmed.endsWith(stripTrailingPunct(p.replace(/^~/, ""))));
 }
@@ -37,9 +44,24 @@ function buildSystemPrompt(questionTypes: string[]): string {
     return parts.join("\n");
   }).join("\n");
 
+  const q4 = getCriterion("Q4");
+
   return `당신은 초등 수학 수업의 교사 발화 후보 목록을 검토하는 전문가입니다.
 각 후보는 물음표나 의문형 어미로 끝나서 "발문일 가능성이 있다"고 코드가 골라낸 것입니다.
 실제로 발문이 아닌 경우(예: 의문형 어미지만 질문이 아닌 서술)도 있으니, isQuestion으로 먼저 판단하세요.
+
+[isQuestion 판정 시 기본 규칙] 물음표(?)가 문장 안에 있으면 거의 항상 isQuestion=true입니다.
+문장 앞부분에 다른 정의·설명·되짚기가 먼저 나오고 그 뒤에 물음표로 끝나는 질문이 이어져도
+(예: "이걸 최소공배수라고 해요. 그럼 6과 8의 최소공배수는 뭘까요?") 물음표가 있는 질문
+부분이 실제 답을 요구하므로 반드시 isQuestion=true입니다. 앞부분의 설명 때문에 "질문이
+아니다"라고 판단하지 마세요.
+
+[isQuestion 판정 시 주의] 물음표가 없어도 발문일 수 있습니다. "말해 볼 사람", "해 볼까",
+"~할 사람 있어요"처럼 자원자를 부르거나 답을 요구하는 초대형 표현은 물음표가 없어도
+isQuestion=true입니다. 존댓말 어미("요")가 빠진 구어체("~할까", "~일까", "뭐라고 할까")도
+학생에게 답을 요구하면 isQuestion=true입니다. 예: "그럼 4의 배수도 말해 볼 사람"과
+"3의 배수와 4의 배수에 둘 다 있는 수를 뭐라고 할까"는 둘 다 물음표가 없지만 명백히
+답을 요구하는 발문입니다.
 
 [발문 유형 분류 (${file.question_type_scheme.name})]
 ${typeDescriptions}
@@ -50,24 +72,34 @@ isQuestion이 false이면 questionType은 그래도 가장 가까운 유형으�
 [발문 단위로 같이 판정할 기준]
 ${criteriaText}
 
-[Q4 판정 시 특히 주의] 발화 안에 실제로 답을 요구하는 질문 문장이 여러 개 있을 수 있습니다.
-그중 "마지막"(가장 실질적인) 질문 문장만 보고 판단하세요: 그 질문이 "~죠?", "그렇지?",
-"맞죠?", "~이지요?"처럼 답을 이미 문장 안에 넣어두고 "네/아니요"만 하면 되는 짧은
-확인성 질문이면 Q4입니다. 예: "3분의 1이죠?"는 답(3분의 1)을 이미 말해버리고 확인만
-요구하므로 Q4입니다. 반대로 "네, 8분의 1. 그럼 4분의 1이랑 8분의 1 중에 뭐가 더 클까요?"는
-앞부분이 이전 답을 확인해주는 되짚기이고, 진짜 질문("뭐가 더 클까요?")은 학생이 직접
-비교해서 답을 골라야 하는 질문이라 답을 미리 주지 않았으므로 Q4가 아닙니다. 즉, 앞에
-확인 표현이 있어도 실제 질문이 "네/아니요"를 넘어서는 새로운 정보(비교·설명·계산 결과 등)를
-요구하면 Q4가 아닙니다.
-이런 발화가 동시에 Q3(자문자답 후보)로도 분류되는 경우가 있는데, Q3와 Q4는 서로 독립적인
-기준이므로 둘 다 해당하면 둘 다 flag=true로 표시하세요 (Q4 판정은 Q3 여부와 무관합니다).
+[Q4 유도 발문 관련 — 최종 판정은 코드가 계산하니, 당신은 아래 두 가지만 독립적으로 답하세요]
+${q4.id} (${q4.name}): ${q4.description}
+발화 안에 질문 문장이 여러 개 있으면 "마지막"(가장 실질적인) 질문 문장만 보고 판단하세요.
 
-각 판정 항목(q1_compound, q2_vague, q4_leading, q9_named_first)은 flag(boolean)와 reason(한국어 1문장)을 반환하세요.
+- q4AnswerAlreadyGiven: 그 질문이 정답/기대하는 답을 문장 안에 이미 담고 있는가?
+  예: "3분의 1이죠?"는 답(3분의 1)을 이미 말했으므로 true. "가장 작은 공배수는 12잖아,
+  그치?"도 답(12)을 이미 제시했으므로 true. "3의 배수에는 뭐가 있었죠?"는 답을 전혀
+  주지 않고 학생이 직접 떠올려야 하므로 false.
+
+- q4ExpectsYesNoOnly: 그 질문이 학생에게 "네/아니요"(또는 동의 여부)만 요구하는가?
+  ("그렇지?", "맞죠?", "그치?"처럼) 학생이 새로운 정보(숫자·설명·계산 결과 등)를 직접
+  말해야 하면 false입니다.
+
+이 두 값과는 별개로, 이런 발화가 동시에 Q3(자문자답 후보)로도 분류되는 경우가 있는데,
+Q3 여부는 이 판단에 영향을 주지 않습니다.
+
+각 판정 항목(q1_compound, q2_vague, q9_named_first, q4AnswerAlreadyGiven,
+q4ExpectsYesNoOnly)은 {value 또는 flag: boolean, reason: 한국어 1문장}으로 답하세요.
 id는 입력값을 그대로 유지하세요.`;
 }
 
 interface LlmFlag {
   flag: boolean;
+  reason: string;
+}
+
+interface AtomicJudgment {
+  value: boolean;
   reason: string;
 }
 
@@ -77,8 +109,9 @@ interface LlmQuestionResult {
   questionType: string;
   q1_compound: LlmFlag;
   q2_vague: LlmFlag;
-  q4_leading: LlmFlag;
   q9_named_first: LlmFlag;
+  q4AnswerAlreadyGiven: AtomicJudgment;
+  q4ExpectsYesNoOnly: AtomicJudgment;
 }
 
 async function callLlm(
@@ -107,6 +140,16 @@ async function callLlm(
     additionalProperties: false as const,
   };
 
+  const judgmentSchema = {
+    type: "object" as const,
+    properties: {
+      value: { type: "boolean" as const },
+      reason: { type: "string" as const },
+    },
+    required: ["value", "reason"],
+    additionalProperties: false as const,
+  };
+
   const completion = await client.chat.completions.create({
     model,
     temperature: 0,
@@ -132,8 +175,9 @@ async function callLlm(
                   questionType: { type: "string", enum: questionTypes },
                   q1_compound: flagSchema,
                   q2_vague: flagSchema,
-                  q4_leading: flagSchema,
                   q9_named_first: flagSchema,
+                  q4AnswerAlreadyGiven: judgmentSchema,
+                  q4ExpectsYesNoOnly: judgmentSchema,
                 },
                 required: [
                   "id",
@@ -141,8 +185,9 @@ async function callLlm(
                   "questionType",
                   "q1_compound",
                   "q2_vague",
-                  "q4_leading",
                   "q9_named_first",
+                  "q4AnswerAlreadyGiven",
+                  "q4ExpectsYesNoOnly",
                 ],
                 additionalProperties: false,
               },
@@ -167,8 +212,11 @@ export async function classifyAndCheckQuestions(
   if (candidates.length === 0) return { questions: [], findings: [] };
 
   const questionTypes = getQuestionTypes();
-  const resultMap = await requestBatchWithRetry(
+  const q4Patterns = getRepresentativePhrases("Q4");
+
+  const resultMap = await requestBatchInChunks(
     candidates.map((c) => ({ id: c.segment.index, candidate: c })),
+    CHUNK_SIZE,
     async (batch) => callLlm(batch.map((b) => b.candidate), questionTypes),
     "발문 분류"
   );
@@ -179,11 +227,8 @@ export async function classifyAndCheckQuestions(
   const criterionMeta: Record<QuestionLevelCriterionId, { key: keyof LlmQuestionResult }> = {
     Q1: { key: "q1_compound" },
     Q2: { key: "q2_vague" },
-    Q4: { key: "q4_leading" },
     Q9: { key: "q9_named_first" },
   };
-
-  const q4Patterns = extractQuotedExamples(getCriterion("Q4").description);
 
   for (const candidate of candidates) {
     const result = resultMap.get(candidate.segment.index);
@@ -197,12 +242,8 @@ export async function classifyAndCheckQuestions(
       questionMarkCount: candidate.questionMarkCount,
     });
 
-    const q4IsCandidate = isQ4EndingCandidate(candidate.segment.text, q4Patterns);
-
     for (const id of QUESTION_LEVEL_CRITERIA_IDS) {
       const flag = result[criterionMeta[id].key] as LlmFlag;
-      // Q4는 어미 패턴이 실제로 없으면 LLM 판단과 무관하게 무조건 제외 (환각 방지)
-      if (id === "Q4" && !q4IsCandidate) continue;
       if (!flag.flag) continue;
       const criterion = getCriterion(id);
       findings.push({
@@ -211,6 +252,23 @@ export async function classifyAndCheckQuestions(
         severity: criterion.severity ?? "미지정",
         segments: [candidate.segment],
         reason: flag.reason,
+        detect: "llm",
+      });
+    }
+
+    // Q4: 의미 판단(답이 이미 들어있는가, 또는 예/아니오만 요구하는가) 중 하나라도 참이고,
+    // 동시에 구조적으로 확인형 어미로 끝날 때만 최종 성립한다. "~죠?"로 끝나도 답이
+    // 안 들어있으면(예: "3의 배수에는 뭐가 있었죠?") Q4가 아니다.
+    const semanticSignal = result.q4AnswerAlreadyGiven.value || result.q4ExpectsYesNoOnly.value;
+    const structuralSignal = endsWithConfirmationEnding(candidate.segment.text, q4Patterns);
+    if (semanticSignal && structuralSignal) {
+      const criterion = getCriterion("Q4");
+      findings.push({
+        criterionId: "Q4",
+        criterionName: criterion.name,
+        severity: criterion.severity ?? "미지정",
+        segments: [candidate.segment],
+        reason: `${result.q4AnswerAlreadyGiven.reason} / ${result.q4ExpectsYesNoOnly.reason}`,
         detect: "llm",
       });
     }

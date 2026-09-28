@@ -1,7 +1,9 @@
 import type { NormalizedTranscript } from "../types/transcript.js";
 import type { ClassifiedQuestion, QuestioningFinding } from "../types/questioning.js";
 import { getAnalysisModel, getOpenAIClient } from "../llm/client.js";
-import { requestBatchWithRetry } from "../llm/batchWithRetry.js";
+import { requestBatchInChunks } from "../llm/batchWithRetry.js";
+
+const CHUNK_SIZE = 5;
 import { getCriterion } from "../criteria/loadQuestioningCriteria.js";
 
 interface SelfAnswerCandidate {
@@ -120,8 +122,9 @@ export async function checkSelfAnswer(
   const candidates = findCandidates(transcript, questions, gapThresholdSec);
   if (candidates.length === 0) return [];
 
-  const resultMap = await requestBatchWithRetry(
+  const resultMap = await requestBatchInChunks(
     candidates.map((c) => ({ id: c.question.segment.index, candidate: c })),
+    CHUNK_SIZE,
     async (batch) => callLlm(batch.map((b) => b.candidate)),
     "자문자답 확인"
   );

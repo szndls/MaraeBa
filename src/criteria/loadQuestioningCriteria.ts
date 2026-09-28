@@ -18,6 +18,10 @@ export interface QuestioningCriterion {
   note?: string;
   verified?: boolean;
   basis?: string;
+  representative_phrases?: {
+    note: string;
+    phrases: string[];
+  };
 }
 
 export interface QuestioningCriteriaFile {
@@ -27,6 +31,10 @@ export interface QuestioningCriteriaFile {
     name: string;
     types: Record<string, string>;
     note: string;
+  };
+  question_candidate_endings: {
+    note: string;
+    endings: string[];
   };
   definitions: {
     wait_time_1: string;
@@ -63,6 +71,15 @@ export function getCriterion(id: string): QuestioningCriterion {
 
 export function getQuestionTypes(): string[] {
   return Object.keys(loadQuestioningCriteria().question_type_scheme.types);
+}
+
+export function getQuestionCandidateEndings(): string[] {
+  return loadQuestioningCriteria().question_candidate_endings.endings;
+}
+
+/** 후보를 넓게 잡는 힌트로만 쓰는 대표 표현 목록. 없으면 빈 배열(힌트 없이 LLM이 전부 판단). */
+export function getRepresentativePhrases(id: string): string[] {
+  return getCriterion(id).representative_phrases?.phrases ?? [];
 }
 
 /**
