@@ -18,10 +18,23 @@ loadEnv({ path: ".env.local" });
 
 const outputDir = () => path.resolve(process.cwd(), "output");
 const intermediateDir = () => path.join(outputDir(), "intermediate");
+const stabilityDir = () => path.join(outputDir(), "stability");
 
 async function writeIntermediate(fileName: string, data: unknown) {
   await mkdir(intermediateDir(), { recursive: true });
   await writeFile(path.join(intermediateDir(), fileName), JSON.stringify(data, null, 2), "utf-8");
+}
+
+/**
+ * 반복 실행 결과를 전사본별·회차별로 남겨서 덮어쓰지 않게 한다. 판정이 실행마다
+ * 얼마나 흔들리는지(또는 안 흔들리는지) 나중에 근거로 보여줄 때 쓴다.
+ */
+async function writeStabilitySnapshot(sourceFile: string, data: unknown) {
+  const transcriptName = path.basename(sourceFile, path.extname(sourceFile));
+  const dir = path.join(stabilityDir(), transcriptName);
+  await mkdir(dir, { recursive: true });
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  await writeFile(path.join(dir, `run-${timestamp}.json`), JSON.stringify(data, null, 2), "utf-8");
 }
 
 async function main() {
@@ -81,6 +94,16 @@ async function main() {
   await writeIntermediate("04-questioning-findings.json", questioningFindings);
   await writeIntermediate("04-wait-time-by-question.json", waitTimeEvaluations);
 
+  await writeStabilitySnapshot(sourceFile, {
+    runAt: new Date().toISOString(),
+    sourceFile,
+    concept: conceptMatch,
+    vocabFindings,
+    questions,
+    questioningFindings,
+    waitTimeEvaluations,
+  });
+
   console.log("\n=== 4단계 결과 ===");
   console.log("발문 유형 분류:");
   for (const q of questions) {
@@ -105,6 +128,7 @@ async function main() {
   }
 
   console.log(`\n중간 결과 저장 위치: ${intermediateDir()}`);
+  console.log(`반복 실행 기록 저장 위치: ${path.join(stabilityDir(), path.basename(sourceFile, path.extname(sourceFile)))}`);
 }
 
 function printVocabGroup(findings: VocabFinding[], category: VocabFinding["category"], label: string) {

@@ -19,10 +19,11 @@ function stripTrailingPunct(s: string): string {
 }
 
 /**
- * Q4의 "확인형 어미" 구조 검사. criteria 파일의 representative_phrases(예: '~죠?',
- * '그렇지?', '맞죠?', '그치?')로 끝나는지 코드로 확인한다. Q4는 이 구조 검사와 LLM의
- * 의미 판단(답이 이미 들어있는가) 둘 다 만족해야 최종 성립한다 — "~죠?"로 끝나도
- * 답이 안 들어있으면(예: "3의 배수에는 뭐가 있었죠?") Q4가 아니다.
+ * Q4의 "확인형 어미" 구조 검사(코드 쪽). criteria 파일의 representative_phrases(예: '~죠?',
+ * '그렇지?', '맞죠?', '그치?')로 끝나는지 확인한다. 이 목록에 없는 확인형 어미는 LLM의
+ * q4EndsWithConfirmationTone 판단으로 보완한다(코드 목록 OR LLM 판단). Q4는 이 구조
+ * 조건과 LLM의 의미 판단(답이 이미 들어있는가) 둘 다 만족해야 최종 성립한다 — "~죠?"로
+ * 끝나도 답이 안 들어있으면(예: "3의 배수에는 뭐가 있었죠?") Q4가 아니다.
  */
 function endsWithConfirmationEnding(text: string, patterns: string[]): boolean {
   const trimmed = stripTrailingPunct(text);
@@ -85,12 +86,18 @@ ${q4.id} (${q4.name}): ${q4.description}
   ("그렇지?", "맞죠?", "그치?"처럼) 학생이 새로운 정보(숫자·설명·계산 결과 등)를 직접
   말해야 하면 false입니다.
 
-이 두 값과는 별개로, 이런 발화가 동시에 Q3(자문자답 후보)로도 분류되는 경우가 있는데,
+- q4EndsWithConfirmationTone: 그 질문 문장이 확인형 어미(동의를 구하는 말투)로 끝나는가?
+  "~죠?", "그렇지?", "맞죠?", "그치?", "~지?", "~잖아?", "맞아?", "그렇죠?", "알겠죠?",
+  "~이지?", "~거든?"처럼 상대의 동의·확인을 구하는 말투면 true입니다. 이 목록에 없는
+  표현이라도 같은 말투(동의를 구하는 어조)면 true로 판단하세요. "~까요?", "~ㄹ까요?",
+  "~니?"처럼 정말 몰라서 묻는 열린 질문 어미는 false입니다.
+
+이 값들과는 별개로, 이런 발화가 동시에 Q3(자문자답 후보)로도 분류되는 경우가 있는데,
 Q3 여부는 이 판단에 영향을 주지 않습니다.
 
 각 판정 항목(q1_compound, q2_vague, q9_named_first, q4AnswerAlreadyGiven,
-q4ExpectsYesNoOnly)은 {value 또는 flag: boolean, reason: 한국어 1문장}으로 답하세요.
-id는 입력값을 그대로 유지하세요.`;
+q4ExpectsYesNoOnly, q4EndsWithConfirmationTone)은 {value 또는 flag: boolean, reason:
+한국어 1문장}으로 답하세요. id는 입력값을 그대로 유지하세요.`;
 }
 
 interface LlmFlag {
@@ -112,6 +119,7 @@ interface LlmQuestionResult {
   q9_named_first: LlmFlag;
   q4AnswerAlreadyGiven: AtomicJudgment;
   q4ExpectsYesNoOnly: AtomicJudgment;
+  q4EndsWithConfirmationTone: AtomicJudgment;
 }
 
 async function callLlm(
@@ -178,6 +186,7 @@ async function callLlm(
                   q9_named_first: flagSchema,
                   q4AnswerAlreadyGiven: judgmentSchema,
                   q4ExpectsYesNoOnly: judgmentSchema,
+                  q4EndsWithConfirmationTone: judgmentSchema,
                 },
                 required: [
                   "id",
@@ -188,6 +197,7 @@ async function callLlm(
                   "q9_named_first",
                   "q4AnswerAlreadyGiven",
                   "q4ExpectsYesNoOnly",
+                  "q4EndsWithConfirmationTone",
                 ],
                 additionalProperties: false,
               },
@@ -256,11 +266,17 @@ export async function classifyAndCheckQuestions(
       });
     }
 
-    // Q4: 의미 판단(답이 이미 들어있는가, 또는 예/아니오만 요구하는가) 중 하나라도 참이고,
-    // 동시에 구조적으로 확인형 어미로 끝날 때만 최종 성립한다. "~죠?"로 끝나도 답이
-    // 안 들어있으면(예: "3의 배수에는 뭐가 있었죠?") Q4가 아니다.
-    const semanticSignal = result.q4AnswerAlreadyGiven.value || result.q4ExpectsYesNoOnly.value;
-    const structuralSignal = endsWithConfirmationEnding(candidate.segment.text, q4Patterns);
+    // Q4: 의미 판단은 "답이 이미 들어있다"와 "예/아니오만 요구한다" 둘 다 참이어야 한다
+    // (둘 중 하나만 참이면 Q4가 아니다 — 예: "동의해요?"는 예/아니오만 요구하지만 답을
+    // 주지 않는 열린 질문이라 Q4가 아니다). 여기에 구조적으로 확인형 어미로 끝날 때만
+    // 최종 성립한다. "~죠?"로 끝나도 답이 안 들어있으면(예: "3의 배수에는 뭐가
+    // 있었죠?") Q4가 아니다.
+    // 구조 조건은 criteria 파일의 대표 표현 목록과 정확히 일치하지 않는 확인형 어미도
+    // 놓치지 않도록, 코드의 목록 일치와 LLM의 어조 판단 중 하나만 참이어도 만족시킨다.
+    const semanticSignal = result.q4AnswerAlreadyGiven.value && result.q4ExpectsYesNoOnly.value;
+    const structuralSignal =
+      endsWithConfirmationEnding(candidate.segment.text, q4Patterns) ||
+      result.q4EndsWithConfirmationTone.value;
     if (semanticSignal && structuralSignal) {
       const criterion = getCriterion("Q4");
       findings.push({
@@ -268,7 +284,7 @@ export async function classifyAndCheckQuestions(
         criterionName: criterion.name,
         severity: criterion.severity ?? "미지정",
         segments: [candidate.segment],
-        reason: `${result.q4AnswerAlreadyGiven.reason} / ${result.q4ExpectsYesNoOnly.reason}`,
+        reason: `${result.q4AnswerAlreadyGiven.reason} / ${result.q4ExpectsYesNoOnly.reason} / ${result.q4EndsWithConfirmationTone.reason}`,
         detect: "llm",
       });
     }
