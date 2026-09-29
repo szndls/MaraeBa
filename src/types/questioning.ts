@@ -23,6 +23,9 @@ export interface QuestioningFinding {
   targetQuestionIndex: number | null;
   /** Q6/Q7/Q8 한정: 고쳐야 할 교사 반응 발화의 세그먼트 index (보통 응답 구간의 첫 발화). */
   targetReactionSegmentIndex?: number | null;
+  /** Q3 자문자답의 답변 발화에 걸린 Q4처럼, 원래 성립 위치와 다른 발문으로 옮겨 합쳐진
+   *  경우에만 채워짐. 5단계 프롬프트가 이 지적을 별도로 다루지 않고 맥락에 녹이도록 안내한다. */
+  mergeNote?: string;
 }
 
 export interface ResponseEvent {

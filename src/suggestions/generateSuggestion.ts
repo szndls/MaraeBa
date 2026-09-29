@@ -45,6 +45,10 @@ ${perCriterionText}
 
 [중요] needsQuestionRewrite=false이면 revisedQuestionText는 반드시 null입니다.
 needsBehaviorSuggestion=false이면 suggestedAction과 exampleTeacherLine은 반드시 null입니다.
+findings 중 note가 있는 항목(주로 Q4)은 별도로 다루지 마세요 — note의 지시대로,
+그 기준을 Q3(자문자답) 설명에 녹여서 suggestedAction/whatAndWhy에서 "이 말이 왜
+유도 발문이기도 한지"를 함께 설명하세요. 이 note 붙은 기준 때문에 revisedQuestionText를
+만들 필요는 없습니다.
 waitTimeAdviceHint가 있으면(Q5가 걸린 경우), 그 문장을 suggestedAction에 그대로
 포함시키세요 — 대기 시간 숫자를 직접 만들어내지 마세요.
 
@@ -68,7 +72,12 @@ async function callLlm(
   const input = {
     cases: batch.map(({ group, waitTimeAdvice, regenerationFeedback }) => {
       const idx = group.question.segment.index;
-      const criteriaIds = group.findings.map((f) => f.criterionId);
+      // mergeNote가 있는 Q4(자문자답 답변 발화에 걸린 것)는 "문장형 기준"으로 치지 않는다
+      // — 별도 개선 발문을 만들 필요가 없고, Q3 설명에 녹여야 하기 때문.
+      const rewriteCriteriaIds = group.findings
+        .filter((f) => !f.mergeNote)
+        .map((f) => f.criterionId);
+      const behaviorCriteriaIds = group.findings.map((f) => f.criterionId);
       return {
         id: idx,
         originalQuestionText: group.question.segment.text,
@@ -84,9 +93,10 @@ async function callLlm(
           reason: f.reason,
           severity: f.severity,
           relatedSegmentTexts: f.segments.map((s) => s.text),
+          note: f.mergeNote ?? null,
         })),
-        needsQuestionRewrite: criteriaIds.some((id) => SENTENCE_CRITERIA.has(id)),
-        needsBehaviorSuggestion: criteriaIds.some((id) => BEHAVIOR_CRITERIA.has(id)),
+        needsQuestionRewrite: rewriteCriteriaIds.some((id) => SENTENCE_CRITERIA.has(id)),
+        needsBehaviorSuggestion: behaviorCriteriaIds.some((id) => BEHAVIOR_CRITERIA.has(id)),
         waitTimeAdviceHint: waitTimeAdvice,
         regenerationFeedback,
       };
