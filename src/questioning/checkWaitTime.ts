@@ -93,24 +93,39 @@ export function evaluateWaitTimes(
 }
 
 /**
- * Q5 지적에 대한 "몇 초 더 기다릴지" 조언을 코드로 계산한다 (LLM이 숫자를 지어내지 않도록).
- * criteria 파일의 thresholds 숫자 중, 현재 대기시간보다 큰 것 중 가장 작은 값을
- * "다음으로 넘어야 할 기준선"으로 본다. 5단계 개선안(Q5)에서 사용한다.
+ * 발문 유형에 대해 "지적이 완전히 사라지는" 목표 대기시간(초)을 계산한다. 이 발문
+ * 유형에 적용되는 모든 조건의 상한값(각 조건의 마지막 숫자) 중 가장 큰 값을 목표로
+ * 삼는다. 예: 일반 발문은 개선권장 조건의 상한(3.0초)까지, 확산적·평가적 발문은
+ * 고차원 조건의 상한(5.0초)까지 — 그래야 그 유형에 걸리는 모든 조건을 한꺼번에
+ * 벗어난다. 5단계(Q3 힌트 발문 대기시간 등)에서도 재사용한다.
  */
-export function computeWaitTimeAdvice(evaluation: WaitTimeEvaluation): string | null {
-  if (evaluation.waitTimeSec === null || evaluation.severity === null) return null;
-
+export function computeTargetWaitSeconds(questionType: string): number | null {
   const criterion = getCriterion("Q5");
   if (!criterion.thresholds) return null;
   const conditions = parseThresholds(criterion.thresholds);
 
   const applicable = conditions.filter(
-    (c) => c.mentionedTypes.length === 0 || c.mentionedTypes.includes(evaluation.question.questionType)
+    (c) => c.mentionedTypes.length === 0 || c.mentionedTypes.includes(questionType)
   );
-  const boundaries = applicable.flatMap((c) => c.numbers).filter((n) => n > evaluation.waitTimeSec!);
-  if (boundaries.length === 0) return null;
+  const upperBounds = applicable
+    .map((c) => c.numbers[c.numbers.length - 1])
+    .filter((n): n is number => n !== undefined);
+  if (upperBounds.length === 0) return null;
 
-  const target = Math.min(...boundaries);
+  return Math.max(...upperBounds);
+}
+
+/**
+ * Q5 지적에 대한 "몇 초 더 기다릴지" 조언을 코드로 계산한다 (LLM이 숫자를 지어내지 않도록).
+ * 단순히 "현재 값보다 큰 최소 경계값"을 쓰면(예: 0.6초 → 1.0초) 여전히 다른 조건
+ * (개선 권장)에 걸린 채로 남으므로, computeTargetWaitSeconds로 완전히 벗어나는 값을 쓴다.
+ */
+export function computeWaitTimeAdvice(evaluation: WaitTimeEvaluation): string | null {
+  if (evaluation.waitTimeSec === null || evaluation.severity === null) return null;
+
+  const target = computeTargetWaitSeconds(evaluation.question.questionType);
+  if (target === null) return null;
+
   return `발문 후 최소 ${target.toFixed(1)}초 이상 기다려 주세요 (지금 관찰된 대기 시간: ${evaluation.waitTimeSec.toFixed(1)}초).`;
 }
 

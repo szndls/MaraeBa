@@ -1,6 +1,10 @@
 {
   "title": "4단계 발문 기준 (발문 하나하나를 검사)",
   "status": "초안 — 사용자 확정 전",
+  "stabilization": {
+    "classification_repeats": 1,
+    "note": "classifyAndCheckQuestions의 판정을 이 횟수만큼 독립적으로 반복 호출해서 항목별 다수결로 최종 값을 정한다. 1이면 끔(기존과 동일하게 1회만 호출). 3 이상(홀수 권장)이면 흔들림이 줄지만 LLM 호출 수가 그만큼 늘어난다."
+  },
   "question_type_scheme": {
     "name": "Blosser 발문 분류",
     "types": {
@@ -89,7 +93,7 @@
       "thresholds": {
         "문제": "wait_time_1 < 1.0초",
         "개선 권장": "1.0초 ≤ wait_time_1 < 3.0초",
-        "고차원 발문 추가 권장": "발문 유형이 확산적·평가적인데 wait_time_1 < 5.0초"
+        "고차원 발문 대기 부족": "발문 유형이 확산적·평가적인데 wait_time_1 < 5.0초"
       },
       "exception": "다음 발화가 교사면 Q3(자문자답)에서 다루고 여기서는 계산하지 않는다",
       "note": "STT 타임스탬프 오차가 있으므로 화면에는 '추정치'로 표시",

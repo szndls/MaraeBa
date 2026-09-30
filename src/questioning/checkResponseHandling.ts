@@ -57,23 +57,31 @@ true/false와 이유를 답하면, 코드가 이 값들을 조합해서 최종 �
    이 값은 false로 두세요.
    판단 기준: 학생이 무엇을 했는지(방법·행동·과정·이유)를 구체적으로 언급하면
    q8IsSpecific=true입니다. 그냥 좋다/잘했다는 느낌만 있고 "무엇을" 잘했는지가 빠져있으면
-   q8IsSpecific=false입니다.
+   q8IsSpecific=false입니다. 학생에게 "무엇이 좋았는지 말해 줄래요?"처럼 되묻는 것은
+   교사가 직접 칭찬한 게 아니므로 q8HasPraiseExpression=false로 판단하세요(칭찬 자체가 없음).
    예1: "좋아요. 끝까지 이유를 찾아서 설명했네요." → "끝까지 이유를 찾아서 설명했다"는
    구체적 행동을 언급 → q8IsSpecific=true.
    예2: "배수를 나란히 써서 비교한 방법이 좋네요." → "배수를 나란히 써서 비교한 방법"이라는
    구체적 방법을 언급 → q8IsSpecific=true.
    예3: "잘했어요.", "훌륭해요." → 무엇을 잘했는지 전혀 언급 없음 → q8IsSpecific=false.
 
+8. reflectsStudentWords: 응답 구간 안에 교사가 학생이 한 말·행동을 구체적으로
+   되짚어(요약·재진술) 표현하는가? 칭찬 표현("좋아요", "잘했어요" 등)이 전혀 없어도
+   괜찮습니다 — 학생이 말한 내용을 교사가 구체적으로 다시 언급했으면 true입니다.
+   예: "4씩 커진다고 했구나." (칭찬 없이 학생 말을 되짚음 → true)
+   예: "학생이 4의 배수를 나열했어요." 같은 일반적 요약이 아니라, 학생이 실제로 한
+   말·방법의 구체적 내용을 담아야 true입니다.
+
 각 항목은 {value: boolean, reason: 한국어 1문장}으로 답하세요. id는 입력값을 그대로
 유지하세요.`;
 }
 
-interface AtomicJudgment {
+export interface AtomicJudgment {
   value: boolean;
   reason: string;
 }
 
-interface LlmResponseResult {
+export interface LlmResponseResult {
   id: number;
   studentAnswerWasWrong: AtomicJudgment;
   nextQuestionIsFollowUp: AtomicJudgment;
@@ -82,26 +90,23 @@ interface LlmResponseResult {
   q7GivesCorrectAnswerDirectly: AtomicJudgment;
   q8HasPraiseExpression: AtomicJudgment;
   q8IsSpecific: AtomicJudgment;
+  reflectsStudentWords: AtomicJudgment;
 }
 
-interface ResponseCase {
-  event: ResponseEvent;
+export interface ResponseJudgmentInput {
+  id: number;
+  precedingQuestionText: string | null;
+  studentAnswerText: string;
+  responseTexts: string[];
+  nextQuestionText: string | null;
 }
 
-async function callLlm(batch: ResponseCase[]): Promise<LlmResponseResult[]> {
+async function callLlm(batch: ResponseJudgmentInput[]): Promise<LlmResponseResult[]> {
   const client = getOpenAIClient();
   const model = getAnalysisModel();
   const systemPrompt = buildSystemPrompt();
 
-  const input = {
-    cases: batch.map((c) => ({
-      id: c.event.studentSegment.index,
-      precedingQuestionText: c.event.precedingQuestionSegment?.text ?? null,
-      studentAnswerText: c.event.studentSegment.text,
-      responseTexts: c.event.responseWindowSegments.map((s) => s.text),
-      nextQuestionText: c.event.nextQuestionSegment?.text ?? null,
-    })),
-  };
+  const input = { cases: batch };
 
   const judgmentSchema = {
     type: "object" as const,
@@ -141,6 +146,7 @@ async function callLlm(batch: ResponseCase[]): Promise<LlmResponseResult[]> {
                   q7GivesCorrectAnswerDirectly: judgmentSchema,
                   q8HasPraiseExpression: judgmentSchema,
                   q8IsSpecific: judgmentSchema,
+                  reflectsStudentWords: judgmentSchema,
                 },
                 required: [
                   "id",
@@ -151,6 +157,7 @@ async function callLlm(batch: ResponseCase[]): Promise<LlmResponseResult[]> {
                   "q7GivesCorrectAnswerDirectly",
                   "q8HasPraiseExpression",
                   "q8IsSpecific",
+                  "reflectsStudentWords",
                 ],
                 additionalProperties: false,
               },
@@ -169,47 +176,88 @@ async function callLlm(batch: ResponseCase[]): Promise<LlmResponseResult[]> {
   return parsed.results;
 }
 
-export async function checkResponseHandling(events: ResponseEvent[]): Promise<QuestioningFinding[]> {
-  const targets = events.filter((e) => e.responseWindowSegments.length > 0 || e.nextQuestionSegment);
-  if (targets.length === 0) return [];
+/** 실제 응답구간이 있는지(비어있으면 Q6/Q7/Q8 모두 구조적으로 성립 불가) 여부까지 반영해서
+ *  최종 판정을 계산한다. checkResponseHandling과 5단계 개선안 재검증이 같은 공식을 쓴다. */
+export function computeResponseGates(
+  result: LlmResponseResult,
+  hasResponseContent: boolean
+): { q6: boolean; q7: boolean; q8: boolean } {
+  const noFollowUp = !result.hasProbingInWindow.value && !result.nextQuestionIsFollowUp.value;
 
-  const cases: ResponseCase[] = targets.map((event) => ({ event }));
+  return {
+    q6: hasResponseContent && result.q6HasEvaluativeExpression.value && noFollowUp,
+    q7:
+      hasResponseContent &&
+      result.studentAnswerWasWrong.value &&
+      result.q7GivesCorrectAnswerDirectly.value &&
+      noFollowUp,
+    q8: hasResponseContent && result.q8HasPraiseExpression.value && !result.q8IsSpecific.value,
+  };
+}
+
+/** 5단계 개선안 검증처럼, 실제 전사본 이벤트가 아니라 텍스트만으로 단건 판정할 때 쓴다. */
+export async function judgeSingleResponse(
+  input: Omit<ResponseJudgmentInput, "id">
+): Promise<LlmResponseResult> {
+  const results = await callLlm([{ id: 0, ...input }]);
+  const result = results[0];
+  if (!result) throw new Error("응답 구간 단건 판정 응답이 비어있습니다.");
+  return result;
+}
+
+/** 6단계 L4(후속 발문 비율) 집계용 — 학생 답변마다 실제 반응이 있었는지와 그 반응에
+ *  캐묻기(이유 묻기·되짚기·다른 학생 연결)가 있었는지를 그대로 노출한다. */
+export interface ResponseProbingResult {
+  studentSegmentIndex: number;
+  hasResponseContent: boolean;
+  hasProbingInWindow: boolean;
+}
+
+export async function checkResponseHandling(
+  events: ResponseEvent[]
+): Promise<{ findings: QuestioningFinding[]; probingResults: ResponseProbingResult[] }> {
+  const targets = events.filter((e) => e.responseWindowSegments.length > 0 || e.nextQuestionSegment);
+  if (targets.length === 0) return { findings: [], probingResults: [] };
+
+  const inputs: Array<ResponseJudgmentInput & { event: ResponseEvent }> = targets.map((event) => ({
+    id: event.studentSegment.index,
+    precedingQuestionText: event.precedingQuestionSegment?.text ?? null,
+    studentAnswerText: event.studentSegment.text,
+    responseTexts: event.responseWindowSegments.map((s) => s.text),
+    nextQuestionText: event.nextQuestionSegment?.text ?? null,
+    event,
+  }));
 
   const resultMap = await requestBatchInChunks(
-    cases.map((c) => ({ id: c.event.studentSegment.index, case: c })),
+    inputs,
     CHUNK_SIZE,
-    async (batch) => callLlm(batch.map((b) => b.case)),
+    async (batch) => callLlm(batch.map(({ event, ...rest }) => rest)),
     "응답 구간 판정"
   );
 
   const findings: QuestioningFinding[] = [];
+  const probingResults: ResponseProbingResult[] = [];
 
-  for (const c of cases) {
-    const result = resultMap.get(c.event.studentSegment.index);
+  for (const input of inputs) {
+    const result = resultMap.get(input.id);
     if (!result) continue;
 
+    const event = input.event;
     const relevantSegments = [
-      ...(c.event.precedingQuestionSegment ? [c.event.precedingQuestionSegment] : []),
-      c.event.studentSegment,
-      ...c.event.responseWindowSegments,
+      ...(event.precedingQuestionSegment ? [event.precedingQuestionSegment] : []),
+      event.studentSegment,
+      ...event.responseWindowSegments,
     ];
 
-    // 응답 구간이 비어있으면(다음이 바로 다음 발문이면) 평가·칭찬 발화 자체가
-    // 없으므로 Q6/Q7/Q8 모두 구조적으로 성립할 수 없다.
-    const hasResponseContent = c.event.responseWindowSegments.length > 0;
-    const noFollowUp = !result.hasProbingInWindow.value && !result.nextQuestionIsFollowUp.value;
+    const hasResponseContent = event.responseWindowSegments.length > 0;
+    const gated = computeResponseGates(result, hasResponseContent);
 
-    const q6 =
-      hasResponseContent && result.q6HasEvaluativeExpression.value && noFollowUp;
-    const q7 =
-      hasResponseContent &&
-      result.studentAnswerWasWrong.value &&
-      result.q7GivesCorrectAnswerDirectly.value &&
-      noFollowUp;
-    const q8 =
-      hasResponseContent && result.q8HasPraiseExpression.value && !result.q8IsSpecific.value;
+    probingResults.push({
+      studentSegmentIndex: event.studentSegment.index,
+      hasResponseContent,
+      hasProbingInWindow: result.hasProbingInWindow.value,
+    });
 
-    const gated = { Q6: q6, Q7: q7, Q8: q8 };
     const reasons: Record<"Q6" | "Q7" | "Q8", string> = {
       Q6: `${result.q6HasEvaluativeExpression.reason} / ${result.hasProbingInWindow.reason} / ${result.nextQuestionIsFollowUp.reason}`,
       Q7: `${result.studentAnswerWasWrong.reason} / ${result.q7GivesCorrectAnswerDirectly.reason} / ${result.hasProbingInWindow.reason}`,
@@ -217,7 +265,8 @@ export async function checkResponseHandling(events: ResponseEvent[]): Promise<Qu
     };
 
     for (const id of RESPONSE_CRITERIA_IDS) {
-      if (!gated[id]) continue;
+      const gateKey = id.toLowerCase() as "q6" | "q7" | "q8";
+      if (!gated[gateKey]) continue;
       const criterion = getCriterion(id);
       findings.push({
         criterionId: id,
@@ -226,12 +275,12 @@ export async function checkResponseHandling(events: ResponseEvent[]): Promise<Qu
         segments: relevantSegments,
         reason: reasons[id],
         detect: "llm",
-        targetQuestionIndex: c.event.precedingQuestionSegment?.index ?? null,
+        targetQuestionIndex: event.precedingQuestionSegment?.index ?? null,
         // 고쳐야 할 반응은 보통 응답 구간의 첫 발화(학생 답 직후 첫 반응)다.
-        targetReactionSegmentIndex: c.event.responseWindowSegments[0]?.index ?? null,
+        targetReactionSegmentIndex: event.responseWindowSegments[0]?.index ?? null,
       });
     }
   }
 
-  return findings;
+  return { findings, probingResults };
 }

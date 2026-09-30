@@ -3,6 +3,7 @@ import { getAnalysisModel, getOpenAIClient } from "../llm/client.js";
 import { requestBatchInChunks } from "../llm/batchWithRetry.js";
 import {
   getCriterion,
+  getClassificationRepeats,
   getQuestionTypes,
   getRepresentativePhrases,
   loadQuestioningCriteria,
@@ -231,6 +232,93 @@ async function callLlm(
   return parsed.results;
 }
 
+function majorityBoolean(values: boolean[]): boolean {
+  const trueCount = values.filter(Boolean).length;
+  return trueCount * 2 > values.length;
+}
+
+function majorityString(values: string[]): string {
+  const counts = new Map<string, number>();
+  for (const v of values) counts.set(v, (counts.get(v) ?? 0) + 1);
+  let best = values[0];
+  let bestCount = 0;
+  for (const [v, c] of counts) {
+    if (c > bestCount) {
+      best = v;
+      bestCount = c;
+    }
+  }
+  return best;
+}
+
+/** 다수결로 정해진 flag/value와 같은 판정을 낸 패스 중 첫 번째의 reason을 고른다. */
+function pickReasonFor<T extends { reason: string }>(
+  passResults: T[],
+  getFlag: (r: T) => boolean,
+  majority: boolean
+): string {
+  const match = passResults.find((r) => getFlag(r) === majority);
+  return match?.reason ?? passResults[0].reason;
+}
+
+/**
+ * repeats회(3 이상 홀수 권장) 독립적으로 전체 분류를 반복 호출하고, 후보별로 각
+ * 판정 항목을 다수결로 합친다. repeats=1이면 그냥 1회 호출 결과를 그대로 쓴다
+ * (기존 동작과 동일, 비용도 그대로).
+ */
+async function classifyWithMajorityVote(
+  candidates: QuestionCandidate[],
+  questionTypes: string[],
+  repeats: number
+): Promise<Map<number, LlmQuestionResult>> {
+  const runOnePass = () =>
+    requestBatchInChunks(
+      candidates.map((c) => ({ id: c.segment.index, candidate: c })),
+      CHUNK_SIZE,
+      async (batch) => callLlm(batch.map((b) => b.candidate), questionTypes),
+      "발문 분류"
+    );
+
+  if (repeats <= 1) return runOnePass();
+
+  const passes = await Promise.all(Array.from({ length: repeats }, () => runOnePass()));
+
+  const merged = new Map<number, LlmQuestionResult>();
+  for (const candidate of candidates) {
+    const id = candidate.segment.index;
+    const perPass = passes.map((p) => p.get(id)).filter((r): r is LlmQuestionResult => r !== undefined);
+    if (perPass.length === 0) continue;
+
+    const isQuestion = majorityBoolean(perPass.map((r) => r.isQuestion));
+    const questionType = majorityString(perPass.map((r) => r.questionType));
+
+    function mergeFlag(get: (r: LlmQuestionResult) => { flag: boolean; reason: string }) {
+      const flag = majorityBoolean(perPass.map((r) => get(r).flag));
+      const reason = pickReasonFor(perPass.map(get), (r) => r.flag, flag);
+      return { flag, reason };
+    }
+    function mergeJudgment(get: (r: LlmQuestionResult) => { value: boolean; reason: string }) {
+      const value = majorityBoolean(perPass.map((r) => get(r).value));
+      const reason = pickReasonFor(perPass.map(get), (r) => r.value, value);
+      return { value, reason };
+    }
+
+    merged.set(id, {
+      id,
+      isQuestion,
+      questionType,
+      q1_compound: mergeFlag((r) => r.q1_compound),
+      q2_vague: mergeFlag((r) => r.q2_vague),
+      q9_named_first: mergeFlag((r) => r.q9_named_first),
+      q4AnswerAlreadyGiven: mergeJudgment((r) => r.q4AnswerAlreadyGiven),
+      q4ExpectsYesNoOnly: mergeJudgment((r) => r.q4ExpectsYesNoOnly),
+      q4EndsWithConfirmationTone: mergeJudgment((r) => r.q4EndsWithConfirmationTone),
+    });
+  }
+
+  return merged;
+}
+
 export async function classifyAndCheckQuestions(
   candidates: QuestionCandidate[]
 ): Promise<{ questions: ClassifiedQuestion[]; findings: QuestioningFinding[] }> {
@@ -238,13 +326,9 @@ export async function classifyAndCheckQuestions(
 
   const questionTypes = getQuestionTypes();
   const q4Patterns = getRepresentativePhrases("Q4");
+  const repeats = getClassificationRepeats();
 
-  const resultMap = await requestBatchInChunks(
-    candidates.map((c) => ({ id: c.segment.index, candidate: c })),
-    CHUNK_SIZE,
-    async (batch) => callLlm(batch.map((b) => b.candidate), questionTypes),
-    "발문 분류"
-  );
+  const resultMap = await classifyWithMajorityVote(candidates, questionTypes, repeats);
 
   const questions: ClassifiedQuestion[] = [];
   const findings: QuestioningFinding[] = [];
