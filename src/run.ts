@@ -15,6 +15,7 @@ import { checkResponseHandling } from "./questioning/checkResponseHandling.js";
 import type { QuestioningFinding } from "./types/questioning.js";
 import { generateImprovements, VALIDATION_CATEGORY_LABELS } from "./suggestions/generateImprovements.js";
 import { generateLessonReport } from "./report/generateLessonReport.js";
+import { computeFindingId } from "./report/findingId.js";
 
 loadEnv({ path: ".env.local" });
 
@@ -134,7 +135,6 @@ async function main() {
     transcript,
     questions,
     questioningFindings,
-    vocabFindings,
     conceptMatch,
     waitTimeEvaluations
   );
@@ -182,10 +182,10 @@ async function main() {
   console.log("\n[6단계] 수업 전체 평가 리포트");
   const ignoredArg = process.argv[3];
   const ignoredFindingIds = new Set(
-    ignoredArg ? ignoredArg.split(",").map((s) => Number(s.trim())).filter((n) => !Number.isNaN(n)) : []
+    ignoredArg ? ignoredArg.split(",").map((s) => s.trim()).filter(Boolean) : []
   );
   if (ignoredFindingIds.size > 0) {
-    console.log(`  → 무시할 지적 index: [${[...ignoredFindingIds].join(", ")}] (questioningFindings 배열 기준)`);
+    console.log(`  → 무시할 지적 id: [${[...ignoredFindingIds].join(", ")}] (기준:발문번호:반응발화번호)`);
   }
 
   const report = await generateLessonReport(
@@ -241,7 +241,7 @@ function printQuestioningGroup(findings: QuestioningFinding[], criterionId: stri
   console.log(`\n[${criterionId} ${group[0].criterionName}] ${group.length}건`);
   for (const f of group) {
     const segInfo = f.segments.map((s) => `[${s.index}] "${s.text}"`).join(" → ");
-    console.log(`  - (${f.severity}) ${segInfo}`);
+    console.log(`  - (${f.severity}) ${segInfo} — id: ${computeFindingId(f)}`);
     console.log(`    이유: ${f.reason}`);
   }
 }

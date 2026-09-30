@@ -1,9 +1,11 @@
 import type { NormalizedTranscript } from "../types/transcript.js";
+import type { ConceptMatch } from "../types/concept.js";
 import type { QuestionCandidate } from "../types/questioning.js";
 import type { QuestionFindingsGroup } from "../types/suggestion.js";
 import type { RawSuggestionResult } from "./generateSuggestion.js";
 import { classifyAndCheckQuestions } from "../questioning/classifyAndCheckQuestions.js";
 import { judgeSingleResponse } from "../questioning/checkResponseHandling.js";
+import { detectKnownTermsInText } from "../vocab/detectKnownTerms.js";
 import { getAnalysisModel, getOpenAIClient } from "../llm/client.js";
 
 const SENTENCE_CRITERIA = new Set(["Q1", "Q2", "Q4", "Q9"]);
@@ -21,6 +23,7 @@ export interface ValidationOutcome {
   notCopiedOk: boolean;
   questionLineScopeOk: boolean;
   responseLineRequiredOk: boolean;
+  responseLineFirstPersonOk: boolean;
   responseLineRevisedOk: boolean | null;
   noAnswerLeakOk: boolean;
   noAnswerLeakInQuestionOk: boolean;
@@ -199,7 +202,7 @@ export function normalizeSuggestionScope(
 export async function validateSuggestionContent(
   raw: RawSuggestionResult,
   group: QuestionFindingsGroup,
-  certainUnknownTerms: string[],
+  concept: ConceptMatch,
   transcript: NormalizedTranscript
 ): Promise<ValidationOutcome> {
   const notes: string[] = [];
@@ -244,7 +247,9 @@ export async function validateSuggestionContent(
     }
   }
 
-  // 3. 용어 검증
+  // 3. 용어 검증 — 3단계 결과(원래 전사본에 실제로 나온 용어)만 보지 않고,
+  // math-terms.json을 5단계가 새로 만든 문장에 직접 대조한다. 힌트 발문처럼 원래
+  // 전사본에는 없던 새 문장에 상위 학년 용어가 섞여 들어가는 경우를 잡기 위함이다.
   const vocabHits: string[] = [];
   const vocabFields: Array<[string, string | null]> = [
     ["개선 발문", raw.revisedQuestionLine],
@@ -253,8 +258,8 @@ export async function validateSuggestionContent(
   ];
   for (const [label, text] of vocabFields) {
     if (text === null) continue;
-    const hit = certainUnknownTerms.find((term) => text.includes(term));
-    if (hit) vocabHits.push(`${label}에 아직 모름 확정 용어 포함: "${hit}"`);
+    const hit = detectKnownTermsInText(text, concept).find((h) => h.category === "certain_unknown");
+    if (hit) vocabHits.push(`${label}에 아직 모름 확정 용어 포함: "${hit.term}" (${hit.reason})`);
   }
   notes.push(...vocabHits);
   const vocabOk = vocabHits.length === 0;
@@ -264,6 +269,17 @@ export async function validateSuggestionContent(
   if (needsResponseLine && !raw.revisedResponseLine) {
     responseLineRequiredOk = false;
     notes.push("Q6·Q7·Q8이 있는데 교사 반응 대사(revisedResponseLine)가 비어있음");
+  }
+
+  // 4-1. 3인칭 표현 검증 — guidelines에 "직접 말을 거는 투로 쓴다"고 적어도 LLM이
+  // "학생이 ~라고 답했구나"처럼 3인칭으로 되돌아가는 경우가 있어 코드로도 막는다.
+  let responseLineFirstPersonOk = true;
+  const THIRD_PERSON_PATTERN = /학생(이|은|을|께서|에게)/;
+  if (raw.revisedResponseLine && THIRD_PERSON_PATTERN.test(raw.revisedResponseLine)) {
+    responseLineFirstPersonOk = false;
+    notes.push(
+      `교사 반응 대사(revisedResponseLine)가 3인칭으로 학생을 지칭함(직접 말을 거는 투로 써야 함): "${raw.revisedResponseLine}"`
+    );
   }
 
   // 5·14. 반응 대사 재판정 (Q6/Q8이 대상 기준이 아니어도 항상 재판정한다 — Q6을
@@ -451,6 +467,7 @@ export async function validateSuggestionContent(
     notCopiedOk,
     questionLineScopeOk,
     responseLineRequiredOk,
+    responseLineFirstPersonOk,
     responseLineRevisedOk,
     noAnswerLeakOk,
     noAnswerLeakInQuestionOk,
@@ -473,6 +490,7 @@ export function isSuggestionFailed(o: ValidationOutcome): boolean {
     !o.notCopiedOk ||
     !o.questionLineScopeOk ||
     !o.responseLineRequiredOk ||
+    !o.responseLineFirstPersonOk ||
     o.responseLineRevisedOk === false ||
     !o.noAnswerLeakOk ||
     !o.noAnswerLeakInQuestionOk ||

@@ -80,10 +80,10 @@ export function computeL2(waitTimeEvaluations: WaitTimeEvaluation[]): MetricResu
         ? "학생 발화가 뒤따른 발문이 없어 계산할 수 없음"
         : `평균 대기 ${avg.toFixed(1)}초, ${total}건 중 ${thresholdSec}초 이상인 비율 ${percent.toFixed(0)}%`,
     isTemporaryCriteria: isTemporaryCriteria(metric),
-    evidenceSegmentIndices: withValue
-      .filter((e) => e.waitTimeSec >= thresholdSec)
-      .slice(0, 2)
-      .map((e) => e.question.segment.index),
+    // 좋았던 사례만 근거로 남기면, 등급이 "개선 필요"일 때(좋은 사례가 아예 없을 때)
+    // 총평이 이 지표를 언급할 근거가 하나도 없어진다 — 전체 사례에서 대표로 몇 개를
+    // 뽑아서 좋든 나쁘든 인용할 수 있게 한다(잘한 점 카드는 별도로 좋은 사례만 뽑는다).
+    evidenceSegmentIndices: withValue.slice(0, 3).map((e) => e.question.segment.index),
   };
 }
 
@@ -115,10 +115,7 @@ export function computeL3(transcript: NormalizedTranscript, responseEvents: Resp
         ? "교사 반응이 뒤따른 학생 발화가 없어 계산할 수 없음"
         : `평균 대기 ${avg.toFixed(1)}초, ${total}건 중 ${thresholdSec}초 이상인 비율 ${percent.toFixed(0)}%`,
     isTemporaryCriteria: isTemporaryCriteria(metric),
-    evidenceSegmentIndices: values
-      .filter((v) => v.seconds >= thresholdSec)
-      .slice(0, 2)
-      .map((v) => v.studentSegmentIndex),
+    evidenceSegmentIndices: values.slice(0, 3).map((v) => v.studentSegmentIndex),
   };
 }
 
@@ -141,10 +138,7 @@ export function computeL4(probingResults: ResponseProbingResult[]): MetricResult
         ? "교사 반응이 있었던 학생 답변이 없어 계산할 수 없음"
         : `교사 반응 ${total}건 중 캐묻기(이유 묻기·되짚기·연결 등) ${probingCount}건 (${percent.toFixed(0)}%)`,
     isTemporaryCriteria: isTemporaryCriteria(metric),
-    evidenceSegmentIndices: withResponse
-      .filter((r) => r.hasProbingInWindow)
-      .slice(0, 2)
-      .map((r) => r.studentSegmentIndex),
+    evidenceSegmentIndices: withResponse.slice(0, 3).map((r) => r.studentSegmentIndex),
   };
 }
 
@@ -200,10 +194,18 @@ export function computeL6(
   };
 }
 
+/** 한 용어가 다른(더 긴) 용어에 완전히 포함되면 겹치는 것으로 보고 긴 쪽만 남긴다.
+ *  예: "소인수"와 "소인수분해"가 둘 다 잡히면 "소인수분해" 하나만 센다. */
+function dedupeOverlappingTerms(findings: VocabFinding[]): VocabFinding[] {
+  return findings.filter(
+    (f) => !findings.some((other) => other !== f && other.term.includes(f.term) && other.term.length > f.term.length)
+  );
+}
+
 /** L7: 진도상 모를 수 있는 용어 — "아직 모름 확정"이 1개 이상이면 개선 필요, 없으면 좋음. */
 export function computeL7(vocabFindings: VocabFinding[]): MetricResult {
   const metric = getLessonMetric("L7");
-  const certainUnknown = vocabFindings.filter((v) => v.category === "certain_unknown");
+  const certainUnknown = dedupeOverlappingTerms(vocabFindings.filter((v) => v.category === "certain_unknown"));
 
   return {
     id: "L7",
@@ -242,6 +244,7 @@ export function computeGoodPoints(
     points.push({
       text: `학생 답변 후 평가로 끝내지 않고 이유를 묻거나 되짚는 반응을 보인 사례가 있습니다 (학생 발화 [${probingSuccess.studentSegmentIndex}] "${seg?.text ?? ""}" 이후).`,
       segmentIndices: [probingSuccess.studentSegmentIndex],
+      relatedCriterionId: "L4",
     });
   }
 
@@ -250,6 +253,7 @@ export function computeGoodPoints(
     points.push({
       text: `${highOrderQuestion.questionType} 발문을 사용했습니다: [${highOrderQuestion.segment.index}] "${highOrderQuestion.segment.text}"`,
       segmentIndices: [highOrderQuestion.segment.index],
+      relatedCriterionId: "L1",
     });
   }
 
@@ -258,6 +262,7 @@ export function computeGoodPoints(
     points.push({
       text: `발문 후 ${l2ThresholdSec}초 이상 충분히 기다린 사례가 있습니다: [${goodWait.question.segment.index}] "${goodWait.question.segment.text}" (대기 ${goodWait.waitTimeSec!.toFixed(1)}초)`,
       segmentIndices: [goodWait.question.segment.index],
+      relatedCriterionId: "L2",
     });
   }
 

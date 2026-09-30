@@ -16,6 +16,8 @@ export interface MetricResult {
 export interface GoodPoint {
   text: string;
   segmentIndices: number[];
+  /** 이 잘한 점이 어느 지표에서 뽑혔는지 (총평이 근거로 인용할 때 그 지표의 evidence로 검증) */
+  relatedCriterionId: string;
 }
 
 export interface PriorityFix {

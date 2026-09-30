@@ -23,6 +23,8 @@ export interface SuggestionValidation {
   questionLineScopeOk: boolean;
   /** Q6·Q7·Q8이 있는데 revisedResponseLine이 비어있으면 실패 */
   responseLineRequiredOk: boolean;
+  /** revisedResponseLine이 "학생이 ~라고 답했구나"처럼 3인칭으로 쓰이면 실패 (직접 말을 거는 투여야 함) */
+  responseLineFirstPersonOk: boolean;
   /** revisedResponseLine을 Q6/Q8 원자적 판정으로 재검증한 결과. 검증 대상이 아니면 null */
   responseLineRevisedOk: boolean | null;
   /** Q7이 있는데 revisedResponseLine에 정답이 들어있으면 실패 (검증 대상이 아니면 true) */

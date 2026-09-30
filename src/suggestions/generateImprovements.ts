@@ -1,7 +1,6 @@
 import type { NormalizedTranscript } from "../types/transcript.js";
 import type { ConceptMatch } from "../types/concept.js";
 import type { ClassifiedQuestion, QuestioningFinding } from "../types/questioning.js";
-import type { VocabFinding } from "../types/vocab.js";
 import type { Suggestion, QuestionFindingsGroup, WhatWhy } from "../types/suggestion.js";
 import type { WaitTimeEvaluation } from "../questioning/checkWaitTime.js";
 import { computeWaitTimeAdvice, computeTargetWaitSeconds } from "../questioning/checkWaitTime.js";
@@ -42,6 +41,7 @@ export const VALIDATION_CATEGORY_LABELS: Record<string, string> = {
   notCopiedOk: "개선 발문이 원문 그대로 복사됨",
   questionLineScopeOk: "개선 발문 범위 벗어남 (문장형 기준 없는데 채움)",
   responseLineRequiredOk: "교사 반응 대사 누락 (Q6·Q7·Q8 있는데 없음)",
+  responseLineFirstPersonOk: "교사 반응 대사가 3인칭(학생이~)으로 쓰임",
   responseLineRevisedOk: "교사 반응 대사 재판정 실패 (Q6 평가만/Q8 칭찬도 되짚기도 아님)",
   noAnswerLeakOk: "반응 대사에 정답 유출 (Q7)",
   noAnswerLeakInQuestionOk: "개선 발문에 학생 답 누설 (숫자/의미)",
@@ -61,6 +61,7 @@ function tallyFailures(outcome: ValidationOutcome, tally: Record<string, number>
   if (!outcome.notCopiedOk) bump(tally, "notCopiedOk");
   if (!outcome.questionLineScopeOk) bump(tally, "questionLineScopeOk");
   if (!outcome.responseLineRequiredOk) bump(tally, "responseLineRequiredOk");
+  if (!outcome.responseLineFirstPersonOk) bump(tally, "responseLineFirstPersonOk");
   if (outcome.responseLineRevisedOk === false) bump(tally, "responseLineRevisedOk");
   if (!outcome.noAnswerLeakOk) bump(tally, "noAnswerLeakOk");
   if (!outcome.noAnswerLeakInQuestionOk) bump(tally, "noAnswerLeakInQuestionOk");
@@ -90,16 +91,11 @@ export async function generateImprovements(
   transcript: NormalizedTranscript,
   questions: ClassifiedQuestion[],
   questioningFindings: QuestioningFinding[],
-  vocabFindings: VocabFinding[],
   conceptMatch: ConceptMatch,
   waitTimeEvaluations: WaitTimeEvaluation[]
 ): Promise<GenerateImprovementsResult> {
   const groups = groupFindingsByQuestion(questions, questioningFindings);
   if (groups.length === 0) return { suggestions: [], stats: { scopeCorrections: {}, regenerationFailures: {} } };
-
-  const certainUnknownTerms = uniq(
-    vocabFindings.filter((v) => v.category === "certain_unknown").map((v) => v.term)
-  );
 
   const waitTimeAdviceByIndex = new Map<number, string>();
   const waitTimeEvaluationByIndex = new Map<number, WaitTimeEvaluation>();
@@ -207,6 +203,21 @@ export async function generateImprovements(
   }
 
   /**
+   * 학생 발화 끝의 종결 어미(요/이요/예요/이에요)와 문장부호를 떼어, "그렇게 답했구나"
+   * 뒤에 자연스럽게 이어지게 한다. 예: "4분의 1이요." → "4분의 1".
+   */
+  function stripSentenceEnding(text: string): string {
+    let t = text.trim().replace(/["'“”'.!?~]+$/g, "").trim();
+    for (const ending of ["이에요", "예요", "이요", "요"]) {
+      if (t.endsWith(ending)) {
+        t = t.slice(0, -ending.length);
+        break;
+      }
+    }
+    return t.trim();
+  }
+
+  /**
    * Q6/Q8 재판정이 재생성 후에도 실패하면(막연한 칭찬을 계속 만드는 등), 학생 발화를
    * 그대로 인용한 되짚기 문장으로 코드가 대체한다 — 되짚기는 항상 Q8 요건(칭찬도
    * 되짚기도 아님)과 Q6 요건(평가만 하지 않음, 판정 표현 자체가 없음)을 동시에
@@ -214,7 +225,7 @@ export async function generateImprovements(
    */
   function buildCodeReplacementResponseLine(group: QuestionFindingsGroup, studentText: string): string {
     const hasQ6 = group.findings.some((f) => f.criterionId === "Q6" && !f.mergeNote);
-    const reflect = `"${studentText}"라고 했구나.`;
+    const reflect = `${stripSentenceEnding(studentText)}, 그렇게 답했구나.`;
     return hasQ6 ? `${reflect} 어떻게 알았어요?` : reflect;
   }
 
@@ -241,7 +252,7 @@ export async function generateImprovements(
     const { raw, corrected } = normalizeSuggestionScope(rawFetched, group);
     for (const c of corrected) bump(scopeCorrections, c);
 
-    const outcome = await validateSuggestionContent(raw, group, certainUnknownTerms, transcript);
+    const outcome = await validateSuggestionContent(raw, group, conceptMatch, transcript);
 
     if (isSuggestionFailed(outcome)) {
       tallyFailures(outcome, regenerationFailures);
@@ -267,22 +278,28 @@ export async function generateImprovements(
       const { raw: retryRaw, corrected } = normalizeSuggestionScope(retryRawFetched, group);
       for (const c of corrected) bump(scopeCorrections, c);
 
-      let retryOutcome = await validateSuggestionContent(retryRaw, group, certainUnknownTerms, transcript);
+      let retryOutcome = await validateSuggestionContent(retryRaw, group, conceptMatch, transcript);
       let finalRaw = retryRaw;
       let usedCodeReplacement = false;
 
-      if (retryOutcome.responseLineRevisedOk === false) {
+      if (retryOutcome.responseLineRevisedOk === false || !retryOutcome.responseLineFirstPersonOk) {
         const studentText = findStudentAnswerText(group);
         if (studentText) {
           const replacement = buildCodeReplacementResponseLine(group, studentText);
           finalRaw = { ...retryRaw, revisedResponseLine: replacement };
           usedCodeReplacement = true;
-          // 이제 해소된 문제(교사 반응 대사 관련 옛 실패 메모)는 지우고, 대체했다는
-          // 사실만 남긴다 — 안 그러면 "여전히 실패"와 "대체함"이 동시에 보여 헷갈린다.
-          const remainingNotes = retryOutcome.notes.filter((n) => !n.startsWith("교사 반응 대사가"));
+          // 이제 해소된 문제(Q6/Q8 재판정·3인칭 관련 옛 실패 메모)만 지우고, 대체로
+          // 해결되지 않는 다른 문제(예: Q7 정답 유출)의 메모는 남긴다 — 안 그러면
+          // 그 문제가 여전히 남아있는데 이유가 안 보이게 된다.
+          const remainingNotes = retryOutcome.notes.filter(
+            (n) =>
+              !n.startsWith("교사 반응 대사가") &&
+              !n.startsWith("교사 반응 대사(revisedResponseLine)가 3인칭")
+          );
           retryOutcome = {
             ...retryOutcome,
             responseLineRevisedOk: true,
+            responseLineFirstPersonOk: true,
             praisedQuoteGroundedOk: true,
             notes: [...remainingNotes, `코드 대체 대사 사용: "${replacement}"`],
           };
@@ -343,6 +360,7 @@ function buildSuggestion(
       notCopiedOk: outcome.notCopiedOk,
       questionLineScopeOk: outcome.questionLineScopeOk,
       responseLineRequiredOk: outcome.responseLineRequiredOk,
+      responseLineFirstPersonOk: outcome.responseLineFirstPersonOk,
       responseLineRevisedOk: outcome.responseLineRevisedOk,
       noAnswerLeakOk: outcome.noAnswerLeakOk,
       noAnswerLeakInQuestionOk: outcome.noAnswerLeakInQuestionOk,

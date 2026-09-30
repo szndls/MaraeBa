@@ -17,7 +17,7 @@ function parseStandardSuffix(code: string): number {
  * 2단계에서 매칭된 개념(currentConcept)을 비교해서 카테고리를 정한다.
  * null이면 "이미 배웠거나 판단 근거가 없어 플래그하지 않음".
  */
-function categorize(
+export function categorize(
   occurrence: TermOccurrence,
   currentConcept: ConceptMatch
 ): { category: "certain_unknown" | "maybe_unknown"; reason: string } | null {
@@ -62,6 +62,29 @@ function categorize(
   }
 
   return null; // 현재 또는 이전 성취기준에 속하는 용어라 이미 다루는 중이거나 배운 것으로 간주
+}
+
+/**
+ * 원래 전사본이 아니라 임의의 텍스트(5단계가 만든 revisedQuestionLine·hintQuestionLine·
+ * revisedResponseLine 등) 하나를 math-terms.json 기준으로 검사한다. 3단계는 "원래
+ * 수업에서 실제로 말한 용어"만 보므로, 5단계가 새로 만들어낸 문장에 아직 안 배운
+ * 용어가 들어가는 것은 3단계 결과만으로는 잡을 수 없다 — 그래서 이 함수가 필요하다.
+ */
+export function detectKnownTermsInText(
+  text: string,
+  concept: ConceptMatch
+): Array<{ term: string; category: "certain_unknown" | "maybe_unknown"; reason: string }> {
+  const termIndex = buildTermIndex();
+  const hits: Array<{ term: string; category: "certain_unknown" | "maybe_unknown"; reason: string }> = [];
+
+  for (const [term, occurrences] of termIndex) {
+    if (!text.includes(term)) continue;
+    const result = categorize(occurrences[0], concept);
+    if (!result) continue;
+    hits.push({ term, ...result });
+  }
+
+  return hits;
 }
 
 export function detectKnownTerms(
