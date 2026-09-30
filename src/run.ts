@@ -13,7 +13,8 @@ import { checkWaitTime, evaluateWaitTimes } from "./questioning/checkWaitTime.js
 import { extractResponseEvents } from "./questioning/extractResponseEvents.js";
 import { checkResponseHandling } from "./questioning/checkResponseHandling.js";
 import type { QuestioningFinding } from "./types/questioning.js";
-import { generateImprovements } from "./suggestions/generateImprovements.js";
+import { generateImprovements, VALIDATION_CATEGORY_LABELS } from "./suggestions/generateImprovements.js";
+import { generateLessonReport } from "./report/generateLessonReport.js";
 
 loadEnv({ path: ".env.local" });
 
@@ -82,7 +83,7 @@ async function main() {
   const waitTimeEvaluations = evaluateWaitTimes(transcript, questions);
   const confirmedQuestionIndices = new Set(questions.map((q) => q.segment.index));
   const responseEvents = extractResponseEvents(transcript, confirmedQuestionIndices);
-  const q678Findings = await checkResponseHandling(responseEvents);
+  const { findings: q678Findings, probingResults } = await checkResponseHandling(responseEvents);
 
   const questioningFindings: QuestioningFinding[] = [
     ...questionLevelFindings,
@@ -129,7 +130,7 @@ async function main() {
   }
 
   console.log("\n[5단계] 개선안 생성");
-  const suggestions = await generateImprovements(
+  const { suggestions, stats } = await generateImprovements(
     transcript,
     questions,
     questioningFindings,
@@ -138,27 +139,88 @@ async function main() {
     waitTimeEvaluations
   );
   await writeIntermediate("05-suggestions.json", suggestions);
+  await writeIntermediate("05-suggestion-stats.json", stats);
 
   console.log(`\n=== 5단계 결과 === (지적 있는 발문 ${suggestions.length}개 중 개선안 생성)`);
   for (const s of suggestions) {
     console.log(`\n[${s.questionIndex}] "${s.originalQuestionText}"`);
     console.log(`  대상 기준: ${s.criteriaAddressed.join(", ")}`);
-    if (s.revisedQuestionText) console.log(`  개선 발문: ${s.revisedQuestionText}`);
+    if (s.revisedQuestionLine) console.log(`  개선 발문: ${s.revisedQuestionLine}`);
+    if (s.hintQuestionLine) console.log(`  힌트 발문(반응 없을 때): ${s.hintQuestionLine}`);
     if (s.suggestedAction) console.log(`  개선 행동: ${s.suggestedAction}`);
-    if (s.exampleTeacherLine) console.log(`  교사 예시 대사: ${s.exampleTeacherLine}`);
-    for (const w of s.whatAndWhy) console.log(`  - ${w.criterionId}: ${w.what} (${w.why})`);
-    console.log(`  기대 반응: ${s.expectedStudentResponse}`);
+    if (s.revisedResponseLine) console.log(`  교사 반응 대사: ${s.revisedResponseLine}`);
+    for (const w of s.whatAndWhy) console.log(`  - ${w.criterionId}: "${w.quotedOriginalText}" → ${w.what} (${w.why})`);
     if (s.targetReactionSegmentIndices.length > 0) {
       console.log(`  고칠 반응 발화: [${s.targetReactionSegmentIndices.join(", ")}]`);
     }
     const v = s.validation;
     const validationFlags: string[] = [];
     if (v.regenerated) validationFlags.push("재생성됨");
+    if (v.usedCodeReplacementResponseLine) validationFlags.push("코드 대체 대사 사용");
     if (v.stillFailingAfterRetry) validationFlags.push("⚠️ 재생성 후에도 검증 실패");
-    if (validationFlags.length > 0) console.log(`  검증: ${validationFlags.join(", ")} — ${v.notes.join("; ")}`);
+    if (validationFlags.length > 0) {
+      const suffix = v.notes.length > 0 ? ` — ${v.notes.join("; ")}` : "";
+      console.log(`  검증: ${validationFlags.join(", ")}${suffix}`);
+    }
   }
 
-  await writeStabilitySnapshot(sourceFile, { stage: "05-suggestions", runAt: new Date().toISOString(), sourceFile, suggestions });
+  console.log("\n=== 5단계 검증 통계 ===");
+  console.log("코드가 범위를 벗어난 필드를 정정한 건수:");
+  const scopeEntries = Object.entries(stats.scopeCorrections);
+  if (scopeEntries.length === 0) console.log("  없음");
+  for (const [reason, count] of scopeEntries) console.log(`  - ${reason}: ${count}건`);
+
+  console.log("\n1차 생성이 실패해서 재생성된 건수 (검증 항목별):");
+  const failureEntries = Object.entries(stats.regenerationFailures);
+  if (failureEntries.length === 0) console.log("  없음 (전부 1차에 통과)");
+  for (const [key, count] of failureEntries) {
+    console.log(`  - ${VALIDATION_CATEGORY_LABELS[key] ?? key}: ${count}건`);
+  }
+
+  await writeStabilitySnapshot(sourceFile, { stage: "05-suggestions", runAt: new Date().toISOString(), sourceFile, suggestions, stats });
+
+  console.log("\n[6단계] 수업 전체 평가 리포트");
+  const ignoredArg = process.argv[3];
+  const ignoredFindingIds = new Set(
+    ignoredArg ? ignoredArg.split(",").map((s) => Number(s.trim())).filter((n) => !Number.isNaN(n)) : []
+  );
+  if (ignoredFindingIds.size > 0) {
+    console.log(`  → 무시할 지적 index: [${[...ignoredFindingIds].join(", ")}] (questioningFindings 배열 기준)`);
+  }
+
+  const report = await generateLessonReport(
+    {
+      transcript,
+      questions,
+      questioningFindings,
+      vocabFindings,
+      waitTimeEvaluations,
+      responseEvents,
+      probingResults,
+    },
+    ignoredFindingIds
+  );
+  await writeIntermediate("06-report.json", report);
+
+  console.log("\n=== 6단계 결과 ===");
+  console.log("(기준 파일: criteria/lesson-criteria.json — 상태: 초안. '임시 기준'으로 표시된 항목은 수치가 아직 확정되지 않았습니다)");
+  for (const m of report.metrics) {
+    const tempTag = m.isTemporaryCriteria ? " [임시 기준]" : "";
+    const gradeTag = m.grade ?? "(등급 없음)";
+    console.log(`  [${m.id}] ${m.name}${tempTag}: ${gradeTag} — ${m.detail}`);
+  }
+
+  console.log("\n잘한 점:");
+  for (const g of report.goodPoints) console.log(`  - ${g.text}`);
+
+  console.log("\n먼저 고칠 점 (심각도 → 빈도 순):");
+  for (const p of report.priorityFixes) {
+    console.log(`  - [${p.criterionId} ${p.criterionName}] (${p.severity}) ${p.count}건 — 예: [${p.exampleSegmentIndices.join(", ")}]`);
+  }
+
+  console.log("\n총평:");
+  console.log(`  ${report.overallSummary}`);
+  for (const w of report.summaryWarnings) console.log(`  ${w}`);
 
   console.log(`\n중간 결과 저장 위치: ${intermediateDir()}`);
   console.log(`반복 실행 기록 저장 위치: ${path.join(stabilityDir(), path.basename(sourceFile, path.extname(sourceFile)))}`);
