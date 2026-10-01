@@ -229,7 +229,8 @@ export function computeGoodPoints(
   questions: ClassifiedQuestion[],
   waitTimeEvaluations: WaitTimeEvaluation[],
   probingResults: ResponseProbingResult[],
-  transcript: NormalizedTranscript
+  transcript: NormalizedTranscript,
+  questioningFindings: QuestioningFinding[]
 ): GoodPoint[] {
   const points: GoodPoint[] = [];
   const l1Metric = getLessonMetric("L1");
@@ -238,7 +239,13 @@ export function computeGoodPoints(
   const l2Metric = getLessonMetric("L2");
   const l2ThresholdSec = extractSeconds(l2Metric.description) ?? 3;
 
-  const probingSuccess = probingResults.find((r) => r.hasResponseContent && r.hasProbingInWindow);
+  // 4단계 지적이 하나라도 걸린 발화는 "잘한 점" 예시로 쓰지 않는다 — 지적받은 발화를
+  // 잘한 예시로 동시에 보여주면 모순된 피드백이 된다.
+  const flaggedIndices = new Set(questioningFindings.flatMap((f) => f.segments.map((s) => s.index)));
+
+  const probingSuccess = probingResults.find(
+    (r) => r.hasResponseContent && r.hasProbingInWindow && !flaggedIndices.has(r.studentSegmentIndex)
+  );
   if (probingSuccess) {
     const seg = transcript.segments[probingSuccess.studentSegmentIndex];
     points.push({
@@ -248,7 +255,9 @@ export function computeGoodPoints(
     });
   }
 
-  const highOrderQuestion = questions.find((q) => targetTypes.includes(q.questionType));
+  const highOrderQuestion = questions.find(
+    (q) => targetTypes.includes(q.questionType) && !flaggedIndices.has(q.segment.index)
+  );
   if (highOrderQuestion) {
     points.push({
       text: `${highOrderQuestion.questionType} 발문을 사용했습니다: [${highOrderQuestion.segment.index}] "${highOrderQuestion.segment.text}"`,
@@ -257,7 +266,9 @@ export function computeGoodPoints(
     });
   }
 
-  const goodWait = waitTimeEvaluations.find((e) => e.waitTimeSec !== null && e.waitTimeSec >= l2ThresholdSec);
+  const goodWait = waitTimeEvaluations.find(
+    (e) => e.waitTimeSec !== null && e.waitTimeSec >= l2ThresholdSec && !flaggedIndices.has(e.question.segment.index)
+  );
   if (goodWait) {
     points.push({
       text: `발문 후 ${l2ThresholdSec}초 이상 충분히 기다린 사례가 있습니다: [${goodWait.question.segment.index}] "${goodWait.question.segment.text}" (대기 ${goodWait.waitTimeSec!.toFixed(1)}초)`,

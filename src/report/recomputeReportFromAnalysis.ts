@@ -41,7 +41,7 @@ export function recomputeReportFromAnalysis(
   const l8 = findMetric(analysis.report.metrics, "L8");
 
   const metrics = [l1, l2, l3, l4, l5, l6, l7, l8];
-  const goodPoints = computeGoodPoints(questions, waitTimeEvaluations, probingResults, transcript);
+  const goodPoints = computeGoodPoints(questions, waitTimeEvaluations, probingResults, transcript, filteredFindings);
 
   const baselineL6 = findMetric(analysis.report.metrics, "L6");
   const metricsChanged =

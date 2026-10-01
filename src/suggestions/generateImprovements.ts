@@ -193,6 +193,18 @@ export async function generateImprovements(
   }
 
   /**
+   * 학생 발화가 여러 문장이면(예: 설명 뒤에 결론을 말하는 경우) 마지막 문장만 되짚는다
+   * — 전체를 인용하면 너무 길고, 실제 답은 보통 마지막 문장에 있다. 문장 구분자(. ! ?)가
+   * 없으면 발화 전체를 그대로 하나의 문장으로 본다.
+   */
+  function extractLastSentence(text: string): string {
+    const trimmed = text.trim();
+    const sentences = trimmed.match(/[^.!?]+[.!?]*/g);
+    if (!sentences || sentences.length === 0) return trimmed;
+    return sentences[sentences.length - 1].trim();
+  }
+
+  /**
    * 학생 발화 끝의 종결 어미(요/이요/예요/이에요)와 문장부호를 떼어, "그렇게 답했구나"
    * 뒤에 자연스럽게 이어지게 한다. 예: "4분의 1이요." → "4분의 1".
    */
@@ -208,14 +220,14 @@ export async function generateImprovements(
   }
 
   /**
-   * Q6/Q8 재판정이 재생성 후에도 실패하면(막연한 칭찬을 계속 만드는 등), 학생 발화를
-   * 그대로 인용한 되짚기 문장으로 코드가 대체한다 — 되짚기는 항상 Q8 요건(칭찬도
-   * 되짚기도 아님)과 Q6 요건(평가만 하지 않음, 판정 표현 자체가 없음)을 동시에
-   * 만족한다. Q6이 대상 기준이면 이유 묻기 문장을 고정으로 덧붙인다(사용자 요청).
+   * Q6/Q8 재판정이 재생성 후에도 실패하면(막연한 칭찬을 계속 만드는 등), 학생 발화의
+   * 마지막 문장을 그대로 인용한 되짚기 문장으로 코드가 대체한다 — 되짚기는 항상 Q8
+   * 요건(칭찬도 되짚기도 아님)과 Q6 요건(평가만 하지 않음, 판정 표현 자체가 없음)을
+   * 동시에 만족한다. Q6이 대상 기준이면 이유 묻기 문장을 고정으로 덧붙인다(사용자 요청).
    */
   function buildCodeReplacementResponseLine(group: QuestionFindingsGroup, studentText: string): string {
     const hasQ6 = group.findings.some((f) => f.criterionId === "Q6" && !f.mergeNote);
-    const reflect = `${stripSentenceEnding(studentText)}, 그렇게 답했구나.`;
+    const reflect = `${stripSentenceEnding(extractLastSentence(studentText))}, 그렇게 답했구나.`;
     return hasQ6 ? `${reflect} 어떻게 알았어요?` : reflect;
   }
 

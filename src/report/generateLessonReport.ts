@@ -37,7 +37,7 @@ export async function generateLessonReport(inputs: LessonReportInputs): Promise<
   const l8 = await judgeL8(transcript);
 
   const metrics = [l1, l2, l3, l4, l5, l6, l7, l8];
-  const goodPoints = computeGoodPoints(questions, waitTimeEvaluations, probingResults, transcript);
+  const goodPoints = computeGoodPoints(questions, waitTimeEvaluations, probingResults, transcript, questioningFindings);
 
   const { summary, warnings: summaryWarnings } = await generateLessonSummary(metrics, goodPoints, priorityFixes);
 
