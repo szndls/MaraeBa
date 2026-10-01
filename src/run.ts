@@ -1,5 +1,5 @@
 import { config as loadEnv } from "dotenv";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, writeFile, readFile } from "node:fs/promises";
 import path from "node:path";
 import { loadFromSyntheticJson } from "./input/loadTranscript.js";
 import { matchConcept } from "./concept/matchConcept.js";
@@ -15,13 +15,18 @@ import { checkResponseHandling } from "./questioning/checkResponseHandling.js";
 import type { QuestioningFinding } from "./types/questioning.js";
 import { generateImprovements, VALIDATION_CATEGORY_LABELS } from "./suggestions/generateImprovements.js";
 import { generateLessonReport } from "./report/generateLessonReport.js";
+import { recomputeReportFromAnalysis } from "./report/recomputeReportFromAnalysis.js";
 import { computeFindingId } from "./report/findingId.js";
+import type { AnalysisResult } from "./types/analysis.js";
+import type { LessonReport } from "./types/report.js";
 
 loadEnv({ path: ".env.local" });
 
 const outputDir = () => path.resolve(process.cwd(), "output");
 const intermediateDir = () => path.join(outputDir(), "intermediate");
 const stabilityDir = () => path.join(outputDir(), "stability");
+const analysisPath = (sourceFile: string) =>
+  path.join(outputDir(), `analysis-${path.basename(sourceFile, path.extname(sourceFile))}.json`);
 
 async function writeIntermediate(fileName: string, data: unknown) {
   await mkdir(intermediateDir(), { recursive: true });
@@ -40,8 +45,69 @@ async function writeStabilitySnapshot(sourceFile: string, data: unknown) {
   await writeFile(path.join(dir, `run-${timestamp}.json`), JSON.stringify(data, null, 2), "utf-8");
 }
 
+function printReport(report: LessonReport) {
+  console.log("\n=== 6단계 결과 ===");
+  console.log("(기준 파일: criteria/lesson-criteria.json — 상태: 초안. '임시 기준'으로 표시된 항목은 수치가 아직 확정되지 않았습니다)");
+  for (const m of report.metrics) {
+    const tempTag = m.isTemporaryCriteria ? " [임시 기준]" : "";
+    const gradeTag = m.grade ?? "(등급 없음)";
+    console.log(`  [${m.id}] ${m.name}${tempTag}: ${gradeTag} — ${m.detail}`);
+  }
+
+  console.log("\n잘한 점:");
+  for (const g of report.goodPoints) console.log(`  - ${g.text}`);
+
+  console.log("\n먼저 고칠 점 (심각도 → 빈도 순):");
+  for (const p of report.priorityFixes) {
+    console.log(`  - [${p.criterionId} ${p.criterionName}] (${p.severity}) ${p.count}건 — 예: [${p.exampleSegmentIndices.join(", ")}]`);
+  }
+
+  console.log("\n총평:");
+  if (report.summaryStale) {
+    console.log("  ⚠️ 총평이 최신이 아닐 수 있음 — 무시 목록 적용으로 지표(L6/먼저 고칠 점)가 바뀌었지만, 총평은 LLM을 다시 부르지 않아 무시 적용 전 지표를 근거로 쓴 그대로입니다.");
+  }
+  console.log(`  ${report.overallSummary}`);
+  for (const w of report.summaryWarnings) console.log(`  ${w}`);
+}
+
+/**
+ * ignoreIds가 주어지면(argv[3]) LLM을 전혀 부르지 않는다 — output/analysis-<이름>.json에
+ * 저장된 이전 전체 분석 결과를 읽어서 코드로만 재계산한다. 이 파일이 없으면(무시 없이
+ * 먼저 한 번 실행한 적이 없으면) 안내하고 종료한다.
+ */
+async function runFromCachedAnalysis(sourceFile: string, ignoredArg: string) {
+  const filePath = analysisPath(sourceFile);
+  let raw: string;
+  try {
+    raw = await readFile(filePath, "utf-8");
+  } catch {
+    console.error(
+      `${filePath}가 없습니다. 지적을 무시하려면 먼저 무시 없이 한 번 실행해서 전체 분석을 저장해야 합니다:\n  npm run analyze -- ${sourceFile}`
+    );
+    process.exit(1);
+    return;
+  }
+  const analysis = JSON.parse(raw) as AnalysisResult;
+
+  const ignoredFindingIds = new Set(ignoredArg.split(",").map((s) => s.trim()).filter(Boolean));
+  console.log(`[6단계] 캐시된 분석(${filePath})에서 코드로만 재계산 — LLM 재호출 없음`);
+  console.log(`  → 무시할 지적 id: [${[...ignoredFindingIds].join(", ")}] (기준:발문번호:반응발화번호)`);
+
+  const report = recomputeReportFromAnalysis(analysis, ignoredFindingIds);
+  await writeIntermediate("06-report.json", report);
+  printReport(report);
+  console.log(`\n중간 결과 저장 위치: ${intermediateDir()}`);
+}
+
 async function main() {
   const sourceFile = process.argv[2] || "sample-transcript.json";
+  const ignoredArg = process.argv[3];
+
+  if (ignoredArg) {
+    await runFromCachedAnalysis(sourceFile, ignoredArg);
+    return;
+  }
+
   const sourcePath = path.resolve(process.cwd(), sourceFile);
 
   console.log(`[0단계] 학년 입력값 확인 + [1단계] 입력 정규화: ${sourceFile}`);
@@ -179,48 +245,37 @@ async function main() {
 
   await writeStabilitySnapshot(sourceFile, { stage: "05-suggestions", runAt: new Date().toISOString(), sourceFile, suggestions, stats });
 
-  console.log("\n[6단계] 수업 전체 평가 리포트");
-  const ignoredArg = process.argv[3];
-  const ignoredFindingIds = new Set(
-    ignoredArg ? ignoredArg.split(",").map((s) => s.trim()).filter(Boolean) : []
-  );
-  if (ignoredFindingIds.size > 0) {
-    console.log(`  → 무시할 지적 id: [${[...ignoredFindingIds].join(", ")}] (기준:발문번호:반응발화번호)`);
-  }
-
-  const report = await generateLessonReport(
-    {
-      transcript,
-      questions,
-      questioningFindings,
-      vocabFindings,
-      waitTimeEvaluations,
-      responseEvents,
-      probingResults,
-    },
-    ignoredFindingIds
-  );
+  console.log("\n[6단계] 수업 전체 평가 리포트 (전체 계산 — 이 결과를 캐시에 저장합니다)");
+  const report = await generateLessonReport({
+    transcript,
+    questions,
+    questioningFindings,
+    vocabFindings,
+    waitTimeEvaluations,
+    responseEvents,
+    probingResults,
+  });
   await writeIntermediate("06-report.json", report);
+  printReport(report);
 
-  console.log("\n=== 6단계 결과 ===");
-  console.log("(기준 파일: criteria/lesson-criteria.json — 상태: 초안. '임시 기준'으로 표시된 항목은 수치가 아직 확정되지 않았습니다)");
-  for (const m of report.metrics) {
-    const tempTag = m.isTemporaryCriteria ? " [임시 기준]" : "";
-    const gradeTag = m.grade ?? "(등급 없음)";
-    console.log(`  [${m.id}] ${m.name}${tempTag}: ${gradeTag} — ${m.detail}`);
-  }
-
-  console.log("\n잘한 점:");
-  for (const g of report.goodPoints) console.log(`  - ${g.text}`);
-
-  console.log("\n먼저 고칠 점 (심각도 → 빈도 순):");
-  for (const p of report.priorityFixes) {
-    console.log(`  - [${p.criterionId} ${p.criterionName}] (${p.severity}) ${p.count}건 — 예: [${p.exampleSegmentIndices.join(", ")}]`);
-  }
-
-  console.log("\n총평:");
-  console.log(`  ${report.overallSummary}`);
-  for (const w of report.summaryWarnings) console.log(`  ${w}`);
+  const analysis: AnalysisResult = {
+    sourceFile,
+    runAt: new Date().toISOString(),
+    transcript,
+    conceptMatch,
+    vocabFindings,
+    questions,
+    questioningFindings,
+    waitTimeEvaluations,
+    responseEvents,
+    probingResults,
+    suggestions,
+    suggestionStats: stats,
+    report,
+  };
+  await mkdir(outputDir(), { recursive: true });
+  await writeFile(analysisPath(sourceFile), JSON.stringify(analysis, null, 2), "utf-8");
+  console.log(`\n전체 분석 저장 위치: ${analysisPath(sourceFile)} (무시 목록 재계산은 이 파일을 읽어서 LLM 없이 처리합니다)`);
 
   console.log(`\n중간 결과 저장 위치: ${intermediateDir()}`);
   console.log(`반복 실행 기록 저장 위치: ${path.join(stabilityDir(), path.basename(sourceFile, path.extname(sourceFile)))}`);

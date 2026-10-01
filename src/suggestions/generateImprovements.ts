@@ -5,6 +5,7 @@ import type { Suggestion, QuestionFindingsGroup, WhatWhy } from "../types/sugges
 import type { WaitTimeEvaluation } from "../questioning/checkWaitTime.js";
 import { computeWaitTimeAdvice, computeTargetWaitSeconds } from "../questioning/checkWaitTime.js";
 import { groupFindingsByQuestion } from "./groupFindingsByQuestion.js";
+import { findStudentAnswerText } from "./findStudentAnswerText.js";
 import { generateSuggestionsForGroups, type GenerationCase, type RawSuggestionResult } from "./generateSuggestion.js";
 import {
   validateSuggestionContent,
@@ -191,17 +192,6 @@ export async function generateImprovements(
     return entries;
   }
 
-  /** Q8·Q6·Q7 순으로 학생 답변 발화를 찾는다(어느 기준이든 같은 응답 사건의 학생
-   *  발화를 가리키므로 우선순위는 크게 중요하지 않다 — 존재하는 것을 쓴다). */
-  function findStudentAnswerText(group: QuestionFindingsGroup): string | null {
-    for (const id of ["Q8", "Q6", "Q7"]) {
-      const finding = group.findings.find((f) => f.criterionId === id);
-      const studentSeg = finding?.segments.find((s) => s.speaker === "student");
-      if (studentSeg) return studentSeg.text;
-    }
-    return null;
-  }
-
   /**
    * 학생 발화 끝의 종결 어미(요/이요/예요/이에요)와 문장부호를 떼어, "그렇게 답했구나"
    * 뒤에 자연스럽게 이어지게 한다. 예: "4분의 1이요." → "4분의 1".
@@ -288,13 +278,16 @@ export async function generateImprovements(
           const replacement = buildCodeReplacementResponseLine(group, studentText);
           finalRaw = { ...retryRaw, revisedResponseLine: replacement };
           usedCodeReplacement = true;
-          // 이제 해소된 문제(Q6/Q8 재판정·3인칭 관련 옛 실패 메모)만 지우고, 대체로
-          // 해결되지 않는 다른 문제(예: Q7 정답 유출)의 메모는 남긴다 — 안 그러면
-          // 그 문제가 여전히 남아있는데 이유가 안 보이게 된다.
+          // 이제 해소된 문제(Q6/Q8 재판정·3인칭·학생에게 직접 말 안 함·되짚기 지어냄
+          // 관련 옛 실패 메모)만 지우고, 대체로 해결되지 않는 다른 문제(예: Q7 정답
+          // 유출)의 메모는 남긴다 — 안 그러면 그 문제가 여전히 남아있는데 이유가 안
+          // 보이게 된다.
           const remainingNotes = retryOutcome.notes.filter(
             (n) =>
               !n.startsWith("교사 반응 대사가") &&
-              !n.startsWith("교사 반응 대사(revisedResponseLine)가 3인칭")
+              !n.startsWith("교사 반응 대사(revisedResponseLine)가 3인칭") &&
+              !n.startsWith("교사 반응 대사(revisedResponseLine)가 학생에게") &&
+              !n.startsWith("교사 반응 대사(revisedResponseLine)가 되짚는")
           );
           retryOutcome = {
             ...retryOutcome,

@@ -72,6 +72,30 @@ true/false와 이유를 답하면, 코드가 이 값들을 조합해서 최종 �
    예: "학생이 4의 배수를 나열했어요." 같은 일반적 요약이 아니라, 학생이 실제로 한
    말·방법의 구체적 내용을 담아야 true입니다.
 
+9. addressesStudentDirectly: 이 응답 구간 문장을, 교사가 학생을 보면서 그 자리에서
+   소리 내어 말한다고 상상해 보세요. 학생이 그 말을 듣고 "네?"라고 반응할 만큼
+   자연스러운 대사라면 true입니다. 반대로 교실 상황을 설명하거나 교사 자신이 무엇을
+   해야 하는지 서술·권장하는 문장(마치 수업 지도안이나 코칭 메모에 적힌 문장처럼
+   들림)이면, 설령 "학생"이라는 단어가 없어도 false입니다. 주어가 암묵적으로
+   "교사(나)"인 조언·서술문(예: "~하는 것이 좋겠어요", "~하면 좋을 것 같다", "~해야
+   한다", "~하지 않고 ~해 보는 것이 좋겠어요")은 전부 false — 이런 문장은 교사가
+   학생 앞에서 그대로 말하면 어색합니다. 학생에게 직접 묻거나, 학생의 말에 반응하거나,
+   학생을 부르는 등 그 자리에서 학생에게 하는 말이면 true입니다.
+   예: "정답이라고 말해주지 않고, 학생의 설명을 더 깊이 있게 들어보는 것이 좋겠어요."
+   → 교사가 스스로 어떻게 할지 서술하는 조언문, 학생 앞에서 소리 내어 말하면 어색함
+   → false.
+   예: "그래서 그렇게 생각한 이유가 뭐예요?" → 학생에게 직접 묻는 대사 → true.
+
+10. reflectionAccurate: 응답 구간이 학생이 한 말·행동·답을 구체적으로 언급(요약·
+    재진술·인용)하고 있다면, 그 내용이 studentAnswerText(실제 학생 답변)와 실제로
+    일치하는가? 응답 구간이 학생이 한 말을 구체적으로 언급하지 않는다면(그냥 질문만
+    하거나 칭찬만 하는 등) 이 값은 true로 두세요. 학생이 하지 않은 말을 지어내거나
+    실제 답과 다른 내용으로 바꿔 말했다면 false입니다 — reflectsStudentWords가
+    false이더라도, 응답이 학생 답을 언급하는 척하며 다른 내용을 지어냈다면 이 값은
+    여전히 false여야 합니다.
+    예: 학생 답변이 "4분의 1이요."인데 응답이 "20을 4로 나누면 5가 된다고 했구나."라면
+    → 학생이 하지 않은 말을 지어냄 → false.
+
 각 항목은 {value: boolean, reason: 한국어 1문장}으로 답하세요. id는 입력값을 그대로
 유지하세요.`;
 }
@@ -91,6 +115,8 @@ export interface LlmResponseResult {
   q8HasPraiseExpression: AtomicJudgment;
   q8IsSpecific: AtomicJudgment;
   reflectsStudentWords: AtomicJudgment;
+  addressesStudentDirectly: AtomicJudgment;
+  reflectionAccurate: AtomicJudgment;
 }
 
 export interface ResponseJudgmentInput {
@@ -147,6 +173,8 @@ async function callLlm(batch: ResponseJudgmentInput[]): Promise<LlmResponseResul
                   q8HasPraiseExpression: judgmentSchema,
                   q8IsSpecific: judgmentSchema,
                   reflectsStudentWords: judgmentSchema,
+                  addressesStudentDirectly: judgmentSchema,
+                  reflectionAccurate: judgmentSchema,
                 },
                 required: [
                   "id",
@@ -158,6 +186,8 @@ async function callLlm(batch: ResponseJudgmentInput[]): Promise<LlmResponseResul
                   "q8HasPraiseExpression",
                   "q8IsSpecific",
                   "reflectsStudentWords",
+                  "addressesStudentDirectly",
+                  "reflectionAccurate",
                 ],
                 additionalProperties: false,
               },

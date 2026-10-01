@@ -38,4 +38,7 @@ export interface LessonReport {
   summaryWarnings: string[];
   /** 이번 계산에서 제외한 지적의 개수 (검산·재계산 확인용) */
   ignoredFindingCount: number;
+  /** true면 overallSummary가 무시 목록 적용 전(캐시된 분석)의 지표를 근거로 쓴 것이라
+   *  최신이 아닐 수 있음 — LLM을 다시 부르지 않고 캐시에서 재계산했을 때만 켜진다. */
+  summaryStale: boolean;
 }

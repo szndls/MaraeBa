@@ -5,6 +5,7 @@ import type { QuestionFindingsGroup } from "../types/suggestion.js";
 import type { RawSuggestionResult } from "./generateSuggestion.js";
 import { classifyAndCheckQuestions } from "../questioning/classifyAndCheckQuestions.js";
 import { judgeSingleResponse } from "../questioning/checkResponseHandling.js";
+import { findStudentAnswerText } from "./findStudentAnswerText.js";
 import { detectKnownTermsInText } from "../vocab/detectKnownTerms.js";
 import { getAnalysisModel, getOpenAIClient } from "../llm/client.js";
 
@@ -184,7 +185,9 @@ export function normalizeSuggestionScope(
  * 4. responseLineRequiredOk: Q6·Q7·Q8이 있는데 revisedResponseLine이 없으면 실패.
  * 5. responseLineRevisedOk: revisedResponseLine을 Q6/Q8 원자적 판정으로 재검증 —
  *    Q6이 있으면 "평가만 하고 캐묻지 않음"이 여전히 성립하면 실패, Q8이 있으면
- *    "칭찬 표현이 있고 구체적임" 또는 "학생 말 되짚기" 중 하나여야 통과.
+ *    "칭찬 표현이 있고 구체적임" 또는 "학생 말 되짚기" 중 하나여야 통과. 추가로
+ *    항상 (a) 학생에게 직접 하는 말인지(조언·지시문이면 실패), (b) 되짚는 내용이
+ *    실제 학생 답변과 일치하는지(지어냈으면 실패)도 함께 본다.
  * 6. noAnswerLeakOk: Q7이 있으면 revisedResponseLine에 정답 값이 들어있으면 실패.
  * 7. noAnswerLeakInQuestionOk: revisedQuestionLine에 다음 학생 발화의 숫자(코드) 또는
  *    결론(LLM 의미 판단)이 미리 들어있으면 실패.
@@ -288,9 +291,10 @@ export async function validateSuggestionContent(
   let responseLineRevisedOk: boolean | null = null;
   let praisedQuoteGroundedOk = true;
   if (raw.revisedResponseLine) {
+    const studentAnswerText = findStudentAnswerText(group) ?? "(실제 학생 답변 없음)";
     const judged = await judgeSingleResponse({
       precedingQuestionText: originalText,
-      studentAnswerText: "(개선안 검증용 — 실제 학생 답변 아님)",
+      studentAnswerText,
       responseTexts: [raw.revisedResponseLine],
       nextQuestionText: null,
     });
@@ -301,12 +305,27 @@ export async function validateSuggestionContent(
     // 아니어도 "막연한 칭찬을 새로 만들지 않았는지"는 항상 확인한다.
     const introducesVaguePraise = judged.q8HasPraiseExpression.value && !usesPraisePath && !usesReflectPath;
     const q8Ok = hasQ8 ? usesPraisePath || usesReflectPath : !introducesVaguePraise;
-    responseLineRevisedOk = q6Ok && q8Ok;
+    const addressesDirectlyOk = judged.addressesStudentDirectly.value;
+    // reflectsStudentWords에 기대지 않고 항상 독립적으로 본다 — 지어낸 내용을 모델이
+    // "되짚기가 아니다"로 분류해버리면 reflectsStudentWords=false가 되어 지어낸 내용이
+    // 그대로 숨어 통과하는 경우가 있었다(실측 확인됨).
+    const reflectionAccurateOk = judged.reflectionAccurate.value;
+    responseLineRevisedOk = q6Ok && q8Ok && addressesDirectlyOk && reflectionAccurateOk;
     if (!q6Ok) notes.push(`교사 반응 대사가 여전히 평가만 하고 캐묻지 않음: ${judged.q6HasEvaluativeExpression.reason}`);
     if (!q8Ok) {
       const label = hasQ8 ? "구체적 칭찬도, 학생 말 되짚기도 아님" : "새로운 막연한 칭찬을 만듦";
       notes.push(
         `교사 반응 대사가 ${label}(칭찬 있음=${judged.q8HasPraiseExpression.value}, 구체적=${judged.q8IsSpecific.value}, 되짚기=${judged.reflectsStudentWords.value}): ${judged.q8HasPraiseExpression.reason} / ${judged.q8IsSpecific.reason} / ${judged.reflectsStudentWords.reason}`
+      );
+    }
+    if (!addressesDirectlyOk) {
+      notes.push(
+        `교사 반응 대사(revisedResponseLine)가 학생에게 직접 하는 말이 아니라 조언·지시문임: ${judged.addressesStudentDirectly.reason}`
+      );
+    }
+    if (!reflectionAccurateOk) {
+      notes.push(
+        `교사 반응 대사(revisedResponseLine)가 되짚는 학생 말이 실제 학생 답변("${studentAnswerText}")과 다름(지어냄): ${judged.reflectionAccurate.reason}`
       );
     }
 

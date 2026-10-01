@@ -7,46 +7,6 @@ import { validateSentenceGrounding, joinSentences, type RawSummarySentence } fro
 
 const GRADE_ENUM = ["좋음", "보통", "개선 필요"] as const;
 
-async function judgeGrade(
-  systemPrompt: string,
-  payload: Record<string, unknown>,
-  schemaName: string,
-  allowedGrades: readonly string[]
-): Promise<{ grade: string; reason: string; citedSegmentIndices: number[] }> {
-  const client = getOpenAIClient();
-  const model = getAnalysisModel();
-
-  const completion = await client.chat.completions.create({
-    model,
-    temperature: 0,
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: JSON.stringify(payload) },
-    ],
-    response_format: {
-      type: "json_schema",
-      json_schema: {
-        name: schemaName,
-        strict: true,
-        schema: {
-          type: "object",
-          properties: {
-            grade: { type: "string", enum: [...allowedGrades] },
-            reason: { type: "string" },
-            citedSegmentIndices: { type: "array", items: { type: "integer" } },
-          },
-          required: ["grade", "reason", "citedSegmentIndices"],
-          additionalProperties: false,
-        },
-      },
-    },
-  });
-
-  const content = completion.choices[0]?.message?.content;
-  if (!content) throw new Error(`${schemaName} 판정 응답이 비어있습니다.`);
-  return JSON.parse(content) as { grade: string; reason: string; citedSegmentIndices: number[] };
-}
-
 interface RawL5Result {
   grade: string;
   sentences: RawSummarySentence[];
@@ -168,7 +128,59 @@ export async function judgeL5(
   };
 }
 
-/** L8: 실생활 연결 — 학생 경험·실생활과 연결된 발문이 있었는지. 없으면 "보통"(개선 필요는 없음). */
+interface RawL8Result {
+  citedSegmentIndices: number[];
+  reason: string;
+}
+
+async function callL8Llm(payload: Record<string, unknown>): Promise<RawL8Result> {
+  const client = getOpenAIClient();
+  const model = getAnalysisModel();
+
+  const systemPrompt = `당신은 초등 수학 수업을 검토하는 전문가입니다.
+교사 발화 목록을 보고, 학생의 실생활 경험이나 일상 사례와 연결된 발문·설명이 있는
+발화를 전부 찾으세요. citedSegmentIndices에는 그런 발화의 index를 전부 넣으세요
+(입력에 있는 index만 쓸 수 있고, 지어내면 안 됩니다 — 없으면 빈 배열). reason에는
+그 판단의 이유를 간단히 쓰세요. 등급은 당신이 정하지 않습니다 — citedSegmentIndices에
+넣은 발화가 있는지 없는지로 코드가 자동으로 정합니다.`;
+
+  const completion = await client.chat.completions.create({
+    model,
+    temperature: 0,
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: JSON.stringify(payload) },
+    ],
+    response_format: {
+      type: "json_schema",
+      json_schema: {
+        name: "real_life_connection_check",
+        strict: true,
+        schema: {
+          type: "object",
+          properties: {
+            citedSegmentIndices: { type: "array", items: { type: "integer" } },
+            reason: { type: "string" },
+          },
+          required: ["citedSegmentIndices", "reason"],
+          additionalProperties: false,
+        },
+      },
+    },
+  });
+
+  const content = completion.choices[0]?.message?.content;
+  if (!content) throw new Error("실생활 연결 판정 응답이 비어있습니다.");
+  return JSON.parse(content) as RawL8Result;
+}
+
+/**
+ * L8: 실생활 연결 — 학생 경험·실생활과 연결된 발문이 있었는지. 없으면 "보통"(개선
+ * 필요는 없음). LLM이 직접 등급(좋음/보통)을 답하게 하면 "인용한 근거는 있는데
+ * 등급은 없다고 답하는" 자기모순이 관찰돼서(같은 입력을 3번 돌렸을 때 인용은 매번
+ * 같은데 등급만 흔들림), 등급 자체는 LLM에게 묻지 않는다 — 인용한 근거 발화가
+ * 있는지 없는지로 코드가 결정한다(있으면 좋음, 없으면 보통).
+ */
 export async function judgeL8(transcript: NormalizedTranscript): Promise<MetricResult> {
   const metric = getLessonMetric("L8");
   const teacherSegments = transcript.segments.filter((s) => s.speaker === "teacher");
@@ -177,25 +189,15 @@ export async function judgeL8(transcript: NormalizedTranscript): Promise<MetricR
     teacherUtterances: teacherSegments.map((s) => ({ index: s.index, text: s.text })),
   };
 
-  const result = await judgeGrade(
-    `당신은 초등 수학 수업을 검토하는 전문가입니다.
-교사 발화 목록을 보고, 학생의 실생활 경험이나 일상 사례와 연결된 발문·설명이
-있었는지 판단하세요. 있으면 "좋음", 없으면 "보통"이라고만 답하세요("개선 필요"는
-쓰지 마세요 — 이 지표는 있으면 가점, 없어도 감점하지 않습니다). citedSegmentIndices에는
-실생활과 연결된 실제 발화의 index만 정확히 넣으세요(입력에 없는 index를 지어내지
-마세요, 없으면 빈 배열).`,
-    payload,
-    "real_life_connection_check",
-    ["좋음", "보통"]
-  );
+  const result = await callL8Llm(payload);
 
   const validIndices = new Set(teacherSegments.map((s) => s.index));
-  const groundedIndices = result.citedSegmentIndices.filter((i) => validIndices.has(i));
+  const groundedIndices = Array.from(new Set(result.citedSegmentIndices.filter((i) => validIndices.has(i))));
 
   return {
     id: "L8",
     name: metric.name,
-    grade: result.grade === "좋음" ? "좋음" : "보통",
+    grade: groundedIndices.length > 0 ? "좋음" : "보통",
     detail: result.reason,
     isTemporaryCriteria: isTemporaryCriteria(metric),
     evidenceSegmentIndices: groundedIndices,
