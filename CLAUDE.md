@@ -42,3 +42,13 @@
 - 한 번에 하나의 기능만 구현하고, 동작 확인 후 커밋
 - 큰 작업은 먼저 계획을 보여주고 승인받은 뒤 구현
 - 사용자는 개발 초보일 수 있으므로, 실행 방법과 확인 방법을 한국어로 짧게 알려줄 것
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->
