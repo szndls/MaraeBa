@@ -90,11 +90,15 @@
       "name": "대기 시간 부족 (발문 후)",
       "description": "발문 후 학생이 생각할 시간을 충분히 주지 않음",
       "detect": "code",
-      "thresholds": {
-        "문제": "wait_time_1 < 1.0초",
-        "개선 권장": "1.0초 ≤ wait_time_1 < 3.0초",
-        "고차원 발문 대기 부족": "발문 유형이 확산적·평가적인데 wait_time_1 < 5.0초"
-      },
+      "thresholds": [
+        { "condition": "대기시간 1초 미만", "severity": "문제", "description": "wait_time_1 < 1.0초" },
+        { "condition": "대기시간 1~3초", "severity": "개선 권장", "description": "1.0초 ≤ wait_time_1 < 3.0초" },
+        {
+          "condition": "고차원 발문 대기 부족",
+          "severity": "개선 권장",
+          "description": "발문 유형이 확산적·평가적인데 wait_time_1 < 5.0초"
+        }
+      ],
       "exception": "다음 발화가 교사면 Q3(자문자답)에서 다루고 여기서는 계산하지 않는다",
       "note": "STT 타임스탬프 오차가 있으므로 화면에는 '추정치'로 표시",
       "basis": "Rowe: 일반 교실 평균 1초 미만, 3~5초로 늘리면 응답 길이·자발적 응답·추론적 응답 증가. Cotton: 기억 발문은 약 3초가 가장 효과적, 고차원 발문은 길수록 효과적. 5초는 권장 범위 3~5초의 상한을 우리가 택한 값"

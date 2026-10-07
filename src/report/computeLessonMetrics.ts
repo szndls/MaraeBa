@@ -242,9 +242,16 @@ export function computeGoodPoints(
   // 4단계 지적이 하나라도 걸린 발화는 "잘한 점" 예시로 쓰지 않는다 — 지적받은 발화를
   // 잘한 예시로 동시에 보여주면 모순된 피드백이 된다.
   const flaggedIndices = new Set(questioningFindings.flatMap((f) => f.segments.map((s) => s.index)));
+  // 잘한 점끼리도 서로 다른 발화를 보여준다 — 같은 발화밖에 없으면 하나만 보여준다
+  // (points.push할 때마다 채워서, 다음 후보 찾기에서 이미 쓴 발화를 제외한다).
+  const usedIndices = new Set<number>();
 
   const probingSuccess = probingResults.find(
-    (r) => r.hasResponseContent && r.hasProbingInWindow && !flaggedIndices.has(r.studentSegmentIndex)
+    (r) =>
+      r.hasResponseContent &&
+      r.hasProbingInWindow &&
+      !flaggedIndices.has(r.studentSegmentIndex) &&
+      !usedIndices.has(r.studentSegmentIndex)
   );
   if (probingSuccess) {
     const seg = transcript.segments[probingSuccess.studentSegmentIndex];
@@ -253,10 +260,11 @@ export function computeGoodPoints(
       segmentIndices: [probingSuccess.studentSegmentIndex],
       relatedCriterionId: "L4",
     });
+    usedIndices.add(probingSuccess.studentSegmentIndex);
   }
 
   const highOrderQuestion = questions.find(
-    (q) => targetTypes.includes(q.questionType) && !flaggedIndices.has(q.segment.index)
+    (q) => targetTypes.includes(q.questionType) && !flaggedIndices.has(q.segment.index) && !usedIndices.has(q.segment.index)
   );
   if (highOrderQuestion) {
     points.push({
@@ -264,10 +272,15 @@ export function computeGoodPoints(
       segmentIndices: [highOrderQuestion.segment.index],
       relatedCriterionId: "L1",
     });
+    usedIndices.add(highOrderQuestion.segment.index);
   }
 
   const goodWait = waitTimeEvaluations.find(
-    (e) => e.waitTimeSec !== null && e.waitTimeSec >= l2ThresholdSec && !flaggedIndices.has(e.question.segment.index)
+    (e) =>
+      e.waitTimeSec !== null &&
+      e.waitTimeSec >= l2ThresholdSec &&
+      !flaggedIndices.has(e.question.segment.index) &&
+      !usedIndices.has(e.question.segment.index)
   );
   if (goodWait) {
     points.push({
@@ -275,6 +288,7 @@ export function computeGoodPoints(
       segmentIndices: [goodWait.question.segment.index],
       relatedCriterionId: "L2",
     });
+    usedIndices.add(goodWait.question.segment.index);
   }
 
   return points.slice(0, 2);

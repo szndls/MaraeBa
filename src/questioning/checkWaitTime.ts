@@ -3,7 +3,8 @@ import type { ClassifiedQuestion, QuestioningFinding } from "../types/questionin
 import { getCriterion, getQuestionTypes, severityRank } from "../criteria/loadQuestioningCriteria.js";
 
 interface ThresholdCondition {
-  key: string;
+  condition: string;
+  severity: string;
   description: string;
   numbers: number[];
   mentionedTypes: string[];
@@ -25,13 +26,15 @@ export interface WaitTimeEvaluation {
  * wait_time_1 < 5.0초")를 파싱한다. 숫자는 문구에 있는 그대로 읽고, 발문 유형은 문구에
  * 실제로 언급된 유형 라벨만 추출한다 — 코드에 별도 수치나 유형을 하드코딩하지 않는다.
  */
-function parseThresholds(thresholds: Record<string, string>): ThresholdCondition[] {
+function parseThresholds(
+  thresholds: Array<{ condition: string; severity: string; description: string }>
+): ThresholdCondition[] {
   const allTypes = getQuestionTypes();
-  return Object.entries(thresholds).map(([key, description]) => {
+  return thresholds.map(({ condition, severity, description }) => {
     // "초" 앞의 숫자만 임계값으로 본다 ("wait_time_1"의 "1"처럼 무관한 숫자를 걸러내기 위함)
     const numbers = Array.from(description.matchAll(/(\d+(?:\.\d+)?)\s*초/g)).map((m) => Number(m[1]));
     const mentionedTypes = allTypes.filter((t) => description.includes(t));
-    return { key, description, numbers, mentionedTypes };
+    return { condition, severity, description, numbers, mentionedTypes };
   });
 }
 
@@ -42,7 +45,7 @@ function conditionMatches(cond: ThresholdCondition, waitTimeSec: number, questio
   if (cond.numbers.length === 2) return waitTimeSec >= cond.numbers[0] && waitTimeSec < cond.numbers[1];
 
   throw new Error(
-    `Q5 thresholds의 "${cond.key}" 문구에서 숫자를 ${cond.numbers.length}개 찾았습니다 (1개 또는 2개여야 함): "${cond.description}"`
+    `Q5 thresholds의 "${cond.condition}" 문구에서 숫자를 ${cond.numbers.length}개 찾았습니다 (1개 또는 2개여야 함): "${cond.description}"`
   );
 }
 
@@ -86,7 +89,7 @@ export function evaluateWaitTimes(
     const severity =
       matched.length === 0
         ? null
-        : matched.reduce((a, b) => (severityRank(b.key) > severityRank(a.key) ? b : a)).key;
+        : matched.reduce((a, b) => (severityRank(b.severity) > severityRank(a.severity) ? b : a)).severity;
 
     return { question, nextSegment, waitTimeSec, skippedReason: null, matchedConditions: matched, severity };
   });
@@ -139,7 +142,7 @@ export function checkWaitTime(
   return evaluations
     .filter((e) => e.severity !== null && e.nextSegment !== null && e.waitTimeSec !== null)
     .map((e) => {
-      const reasonParts = e.matchedConditions.map((c) => `${c.key}(${c.description})`);
+      const reasonParts = e.matchedConditions.map((c) => `${c.condition}(${c.description})`);
       const reason = `대기 시간 ${e.waitTimeSec!.toFixed(1)}초, 발문 유형 "${e.question.questionType}" — 해당 조건: ${reasonParts.join("; ")}`;
 
       return {

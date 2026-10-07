@@ -13,7 +13,9 @@ export interface QuestioningCriterion {
   hint_for_code?: string;
   judge_rule?: string;
   severity?: string;
-  thresholds?: Record<string, string>;
+  /** Q5 전용: 조건(condition)마다 심각도(severity, "문제"/"개선 권장"만)와 판정 문구를
+   *  명시적으로 분리한다 — 조건 이름 자체를 severity로 쓰지 않는다. */
+  thresholds?: Array<{ condition: string; severity: string; description: string }>;
   exception?: string;
   note?: string;
   verified?: boolean;
