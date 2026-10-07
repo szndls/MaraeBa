@@ -39,7 +39,7 @@ export const HIGHLIGHT_GROUPS: Record<HighlightGroupKey, HighlightGroupConfig> =
     badge: "bg-pink-200 text-pink-900",
   },
   vocab: {
-    label: "3단계 용어",
+    label: "어려운 용어",
     criteria: [],
     strong: "bg-purple-300",
     light: "bg-purple-100",

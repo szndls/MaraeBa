@@ -61,21 +61,25 @@ export function TranscriptLine({
   return (
     <div id={`segment-${segment.index}`}>
       <div
-        className={`flex gap-3 rounded-md px-2 py-1.5 ${
+        className={`flex flex-col gap-0.5 rounded-md px-2 py-1.5 sm:flex-row sm:items-start sm:gap-3 ${
           segment.speaker === "teacher" ? "" : "opacity-80"
         } ${isSelected ? "ring-2 ring-slate-400" : ""} ${clickable ? "cursor-pointer hover:brightness-95" : ""}`}
         onClick={clickable ? () => onSelect(segment.index) : undefined}
         role={clickable ? "button" : undefined}
         tabIndex={clickable ? 0 : undefined}
       >
-        <span className="w-10 shrink-0 pt-0.5 text-xs text-slate-400">{formatTimestamp(segment.start)}</span>
-        <span
-          className={`w-14 shrink-0 pt-0.5 text-xs font-medium ${
-            segment.speaker === "teacher" ? "text-slate-600" : "text-slate-400"
-          }`}
-        >
-          {segment.speaker === "teacher" ? "선생님" : "학생"}
-        </span>
+        {/* 모바일: 시각·화자를 한 줄로 묶어 문장 위에 올린다. sm 이상: sm:contents로
+            래퍼를 없애서 두 span이 다시 부모의 직속 가로 칸이 된다(원래 레이아웃). */}
+        <div className="flex gap-2 sm:contents">
+          <span className="text-xs text-slate-400 sm:w-10 sm:shrink-0 sm:pt-0.5">{formatTimestamp(segment.start)}</span>
+          <span
+            className={`text-xs font-medium sm:w-14 sm:shrink-0 sm:pt-0.5 ${
+              segment.speaker === "teacher" ? "text-slate-600" : "text-slate-400"
+            }`}
+          >
+            {segment.speaker === "teacher" ? "선생님" : "학생"}
+          </span>
+        </div>
         <div className="flex-1">
           <span className={bgClass ? `${bgClass} rounded px-1 py-0.5` : undefined}>
             {renderHighlightedText(segment.text, highlight?.vocabSpans ?? [])}

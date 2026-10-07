@@ -8,6 +8,7 @@ import {
   getRepresentativePhrases,
   loadQuestioningCriteria,
 } from "../criteria/loadQuestioningCriteria.js";
+import { buildQ1Reason, buildQ2Reason, buildQ4Reason, buildQ9Reason } from "../report/findingReason.js";
 
 /** 사례당 필드가 많고 프롬프트가 길어서(유형 판단 원칙·대비 예시 포함) 한 번에 너무 많이
  *  넣으면 LLM 품질이 떨어지는 게 관찰되어 묶음을 작게 유지한다. */
@@ -333,10 +334,13 @@ export async function classifyAndCheckQuestions(
   const questions: ClassifiedQuestion[] = [];
   const findings: QuestioningFinding[] = [];
 
-  const criterionMeta: Record<QuestionLevelCriterionId, { key: keyof LlmQuestionResult }> = {
-    Q1: { key: "q1_compound" },
-    Q2: { key: "q2_vague" },
-    Q9: { key: "q9_named_first" },
+  const criterionMeta: Record<
+    QuestionLevelCriterionId,
+    { key: keyof LlmQuestionResult; buildReason: (questionText: string) => string }
+  > = {
+    Q1: { key: "q1_compound", buildReason: buildQ1Reason },
+    Q2: { key: "q2_vague", buildReason: buildQ2Reason },
+    Q9: { key: "q9_named_first", buildReason: buildQ9Reason },
   };
 
   for (const candidate of candidates) {
@@ -352,7 +356,8 @@ export async function classifyAndCheckQuestions(
     });
 
     for (const id of QUESTION_LEVEL_CRITERIA_IDS) {
-      const flag = result[criterionMeta[id].key] as LlmFlag;
+      const meta = criterionMeta[id];
+      const flag = result[meta.key] as LlmFlag;
       if (!flag.flag) continue;
       const criterion = getCriterion(id);
       findings.push({
@@ -360,7 +365,8 @@ export async function classifyAndCheckQuestions(
         criterionName: criterion.name,
         severity: criterion.severity ?? "미지정",
         segments: [candidate.segment],
-        reason: flag.reason,
+        reason: meta.buildReason(candidate.segment.text),
+        devReason: flag.reason,
         detect: "llm",
         targetQuestionIndex: candidate.segment.index,
       });
@@ -384,7 +390,8 @@ export async function classifyAndCheckQuestions(
         criterionName: criterion.name,
         severity: criterion.severity ?? "미지정",
         segments: [candidate.segment],
-        reason: `${result.q4AnswerAlreadyGiven.reason} / ${result.q4ExpectsYesNoOnly.reason} / ${result.q4EndsWithConfirmationTone.reason}`,
+        reason: buildQ4Reason(candidate.segment.text),
+        devReason: `${result.q4AnswerAlreadyGiven.reason} / ${result.q4ExpectsYesNoOnly.reason} / ${result.q4EndsWithConfirmationTone.reason}`,
         detect: "llm",
         targetQuestionIndex: candidate.segment.index,
       });

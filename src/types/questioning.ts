@@ -16,7 +16,12 @@ export interface QuestioningFinding {
   criterionName: string;
   severity: string;
   segments: TranscriptSegment[];
+  /** 교사에게 보여줄 한 문장 — 코드 템플릿 + 원문 인용으로 만든다(LLM 원자적
+   *  판단 문장을 그대로 이어 붙이지 않음). */
   reason: string;
+  /** 개발용 — 이 지적을 만든 LLM 원자적 판단의 원문(여러 개면 " / "로 이어 붙임).
+   *  화면에는 보여주지 않는다. Q5처럼 LLM 판단이 없는 지적은 없음. */
+  devReason?: string;
   detect: "code" | "llm" | "code+llm";
   /** 이 지적이 속하는 발문의 세그먼트 index (5단계에서 발문별로 지적을 묶는 데 사용).
    *  직전 교사 발화가 없는 드문 경우에만 null. */

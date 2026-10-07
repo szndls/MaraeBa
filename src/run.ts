@@ -298,6 +298,7 @@ function printQuestioningGroup(findings: QuestioningFinding[], criterionId: stri
     const segInfo = f.segments.map((s) => `[${s.index}] "${s.text}"`).join(" → ");
     console.log(`  - (${f.severity}) ${segInfo} — id: ${computeFindingId(f)}`);
     console.log(`    이유: ${f.reason}`);
+    if (f.devReason) console.log(`    (개발용) ${f.devReason}`);
   }
 }
 

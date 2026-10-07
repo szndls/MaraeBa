@@ -2,6 +2,7 @@ import type { ResponseEvent, QuestioningFinding } from "../types/questioning.js"
 import { getAnalysisModel, getOpenAIClient } from "../llm/client.js";
 import { requestBatchInChunks } from "../llm/batchWithRetry.js";
 import { getCriterion } from "../criteria/loadQuestioningCriteria.js";
+import { buildQ6Reason, buildQ7Reason, buildQ8Reason } from "../report/findingReason.js";
 
 const RESPONSE_CRITERIA_IDS = ["Q6", "Q7", "Q8"] as const;
 
@@ -59,11 +60,19 @@ true/false와 이유를 답하면, 코드가 이 값들을 조합해서 최종 �
    q8IsSpecific=true입니다. 그냥 좋다/잘했다는 느낌만 있고 "무엇을" 잘했는지가 빠져있으면
    q8IsSpecific=false입니다. 학생에게 "무엇이 좋았는지 말해 줄래요?"처럼 되묻는 것은
    교사가 직접 칭찬한 게 아니므로 q8HasPraiseExpression=false로 판단하세요(칭찬 자체가 없음).
-   예1: "숫자를 하나씩 세어가며 확인한 방법이 좋네요." → "숫자를 하나씩 세어가며 확인한
-   방법"이라는 구체적 방법을 언급 → q8IsSpecific=true.
-   예2: "그 이유를 차근차근 짚어서 설명한 점이 좋아요." → "이유를 차근차근 짚어서
-   설명한" 구체적 행동을 언급 → q8IsSpecific=true.
+   주의: 원래 발문(precedingQuestionText)이 묻는 내용을 그대로 다시 말하는 것은
+   구체적 칭찬이 아닙니다 — 그건 질문 문구를 복붙한 것일 뿐, 학생이 studentAnswerText에서
+   실제로 한 말·방법을 가져온 게 아닙니다. "구체적"이려면 반드시 studentAnswerText에
+   실제로 있는 내용이어야 합니다.
+   예1: "숫자를 하나씩 세어가며 확인한 방법이 좋네요." → studentAnswerText에 그
+   방법이 실제로 있다면 → q8IsSpecific=true.
+   예2: "그 이유를 차근차근 짚어서 설명한 점이 좋아요." → studentAnswerText에 그
+   설명이 실제로 있다면 → q8IsSpecific=true.
    예3: "잘했어요.", "훌륭해요." → 무엇을 잘했는지 전혀 언급 없음 → q8IsSpecific=false.
+   예4: 발문이 "그중에 한 조각은 전체의 얼마일까요?"이고 studentAnswerText가
+   "4분의 1이요."뿐인데(설명 없이 답만 함), 응답이 "한 조각이 전체의 얼마인지 잘
+   설명해 주었어"라면 → 발문 문구를 그대로 반복했을 뿐 학생이 실제로 설명한 내용이
+   아님(학생은 설명한 적이 없음) → q8IsSpecific=false.
 
 8. reflectsStudentWords: 응답 구간 안에 교사가 학생이 한 말·행동을 구체적으로
    되짚어(요약·재진술) 표현하는가? 칭찬 표현("좋아요", "잘했어요" 등)이 전혀 없어도
@@ -93,8 +102,18 @@ true/false와 이유를 답하면, 코드가 이 값들을 조합해서 최종 �
     실제 답과 다른 내용으로 바꿔 말했다면 false입니다 — reflectsStudentWords가
     false이더라도, 응답이 학생 답을 언급하는 척하며 다른 내용을 지어냈다면 이 값은
     여전히 false여야 합니다.
+    응답 문장이 여러 개로 이어져 있으면 각 문장을 따로 확인하세요 — 앞 문장이
+    정확하다고 해서 뒤 문장도 맞다고 넘기지 마세요. 특히 "설명했다", "방법을 썼다",
+    "이유를 말했다"처럼 학생이 한 어떤 행동을 서술하는 부분이 있다면, 그 행동이
+    studentAnswerText에 실제로 있어야 합니다. 학생이 짧은 답만 하고 설명하지
+    않았는데 "잘 설명해 주었어"처럼 설명했다고 말한다면, 답 자체는 맞았더라도
+    false입니다 — "답이 맞았다"와 "설명했다"는 서로 다른 주장입니다.
     예: 학생 답변이 "4분의 1이요."인데 응답이 "20을 4로 나누면 5가 된다고 했구나."라면
     → 학생이 하지 않은 말을 지어냄 → false.
+    예: 학생 답변이 "4분의 1이요."뿐인데(설명 없음) 응답이 "4분의 1이라고 잘
+    대답했구나. 한 조각이 전체의 얼마인지 잘 설명해 주었어."라면 → 앞 문장(답을
+    맞혔다는 것)은 정확하지만, 뒷 문장이 학생이 하지 않은 "설명"을 했다고 주장함
+    → false.
 
 각 항목은 {value: boolean, reason: 한국어 1문장}으로 답하세요. id는 입력값을 그대로
 유지하세요.`;
@@ -288,7 +307,14 @@ export async function checkResponseHandling(
       hasProbingInWindow: result.hasProbingInWindow.value,
     });
 
+    const reactionText = event.responseWindowSegments[0]?.text ?? "";
+
     const reasons: Record<"Q6" | "Q7" | "Q8", string> = {
+      Q6: buildQ6Reason(reactionText),
+      Q7: buildQ7Reason(event.studentSegment.text, reactionText),
+      Q8: buildQ8Reason(reactionText),
+    };
+    const devReasons: Record<"Q6" | "Q7" | "Q8", string> = {
       Q6: `${result.q6HasEvaluativeExpression.reason} / ${result.hasProbingInWindow.reason} / ${result.nextQuestionIsFollowUp.reason}`,
       Q7: `${result.studentAnswerWasWrong.reason} / ${result.q7GivesCorrectAnswerDirectly.reason} / ${result.hasProbingInWindow.reason}`,
       Q8: `${result.q8HasPraiseExpression.reason} / ${result.q8IsSpecific.reason}`,
@@ -304,6 +330,7 @@ export async function checkResponseHandling(
         severity: criterion.severity ?? "미지정",
         segments: relevantSegments,
         reason: reasons[id],
+        devReason: devReasons[id],
         detect: "llm",
         targetQuestionIndex: event.precedingQuestionSegment?.index ?? null,
         // 고쳐야 할 반응은 보통 응답 구간의 첫 발화(학생 답 직후 첫 반응)다.

@@ -4,6 +4,12 @@ import { computeFindingId } from "../../../src/report/findingId.js";
 import { HIGHLIGHT_GROUPS, groupForCriterion } from "../../lib/highlightConfig.js";
 import { getSuggestionFieldVisibility } from "../../lib/suggestionFieldVisibility.js";
 
+// "개선 발문/힌트/개선 행동"은 발문 쪼갠에 속하고, "교사 반응 대사"는 반응 발화 쪽에
+// 속한다 — 반응 발화([2] 등)를 눌렀을 때 그 발문의 대기시간 행동까지 같이 뜨는 걸
+// 막기 위해, 클릭한 발화에 실제로 걸린(무시되지 않은) 기준으로만 보여줄 필드를 가른다.
+const QUESTION_MOMENT_CRITERIA = [...HIGHLIGHT_GROUPS.question.criteria, ...HIGHLIGHT_GROUPS.wait.criteria];
+const REACTION_MOMENT_CRITERIA = HIGHLIGHT_GROUPS.reaction.criteria;
+
 function FieldBlock({ label, value, ok }: { label: string; value: string | null; ok: boolean }) {
   if (!value) return null;
   if (!ok) {
@@ -39,13 +45,20 @@ export function DetailPanel({
   const findingsHere = questioningFindings.filter((f) =>
     f.segments.some((s) => s.index === selectedSegmentIndex)
   );
+  // 무시한 지적은 아래 개선안 섹션(이유·개선 행동)에서는 완전히 빠진다 — 위쪽
+  // 목록에만 "무시 취소"를 위해 흐리게 남는다.
+  const activeFindingsHere = findingsHere.filter((f) => !ignoredFindingIds.has(computeFindingId(f)));
+  const activeCriteriaHere = new Set(activeFindingsHere.map((f) => f.criterionId));
 
   const relatedQuestionIndices = Array.from(
-    new Set(findingsHere.map((f) => f.targetQuestionIndex).filter((x): x is number => x !== null))
+    new Set(activeFindingsHere.map((f) => f.targetQuestionIndex).filter((x): x is number => x !== null))
   );
   const relatedSuggestions = relatedQuestionIndices
     .map((qIdx) => suggestions.find((s) => s.questionIndex === qIdx))
     .filter((s): s is Suggestion => s !== undefined);
+
+  const showQuestionFields = QUESTION_MOMENT_CRITERIA.some((id) => activeCriteriaHere.has(id));
+  const showReactionFields = REACTION_MOMENT_CRITERIA.some((id) => activeCriteriaHere.has(id));
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-40 max-h-[75vh] overflow-y-auto rounded-t-2xl border-t border-slate-200 bg-white p-4 shadow-lg lg:sticky lg:top-4 lg:inset-auto lg:max-h-[calc(100vh-2rem)] lg:w-96 lg:shrink-0 lg:rounded-lg lg:border lg:shadow-none">
@@ -75,7 +88,11 @@ export function DetailPanel({
                 </span>
                 <span className="text-xs text-slate-400">{f.severity}</span>
               </div>
-              <p className="text-sm text-slate-700">{f.reason}</p>
+              {isIgnored ? (
+                <p className="text-sm italic text-slate-400">무시한 지적이에요.</p>
+              ) : (
+                <p className="text-sm text-slate-700">{f.reason}</p>
+              )}
               <button
                 type="button"
                 onClick={() => onToggleIgnore(id)}
@@ -90,18 +107,25 @@ export function DetailPanel({
 
       {relatedSuggestions.map((s) => {
         const visibility = getSuggestionFieldVisibility(s.validation);
+        const whatAndWhyHere = s.whatAndWhy.filter((w) => activeCriteriaHere.has(w.criterionId));
         return (
           <div key={s.questionIndex} className="space-y-2 border-t border-slate-100 pt-3">
             <h3 className="text-sm font-semibold text-slate-600">개선안 (발문 [{s.questionIndex}])</h3>
-            <FieldBlock label="개선 발문" value={s.revisedQuestionLine} ok={visibility.questionLine} />
-            <FieldBlock label="힌트 발문" value={s.hintQuestionLine} ok={visibility.hintLine} />
-            <FieldBlock label="교사 반응 대사" value={s.revisedResponseLine} ok={visibility.responseLine} />
-            <FieldBlock label="개선 행동" value={s.suggestedAction} ok={visibility.action} />
-            {s.whatAndWhy.length > 0 && (
+            {showQuestionFields && (
+              <>
+                <FieldBlock label="개선 발문" value={s.revisedQuestionLine} ok={visibility.questionLine} />
+                <FieldBlock label="힌트 발문" value={s.hintQuestionLine} ok={visibility.hintLine} />
+                <FieldBlock label="개선 행동" value={s.suggestedAction} ok={visibility.action} />
+              </>
+            )}
+            {showReactionFields && (
+              <FieldBlock label="교사 반응 대사" value={s.revisedResponseLine} ok={visibility.responseLine} />
+            )}
+            {whatAndWhyHere.length > 0 && (
               <div className="rounded-md bg-slate-50 px-3 py-2 text-sm">
                 <div className="mb-1 font-medium text-slate-500">왜 이렇게 고쳐야 할까요</div>
                 <ul className="space-y-1">
-                  {s.whatAndWhy.map((w, i) => (
+                  {whatAndWhyHere.map((w, i) => (
                     <li key={i} className="text-slate-700">
                       {w.why}
                     </li>

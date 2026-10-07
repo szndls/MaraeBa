@@ -5,6 +5,7 @@ import { requestBatchInChunks } from "../llm/batchWithRetry.js";
 
 const CHUNK_SIZE = 5;
 import { getCriterion } from "../criteria/loadQuestioningCriteria.js";
+import { buildQ3Reason } from "../report/findingReason.js";
 
 interface SelfAnswerCandidate {
   question: ClassifiedQuestion;
@@ -141,7 +142,8 @@ export async function checkSelfAnswer(
       criterionName: criterion.name,
       severity: criterion.severity ?? "미지정",
       segments: [candidate.question.segment, candidate.nextSegment],
-      reason: `(간격 ${candidate.gapSec.toFixed(1)}초) ${result.reason}`,
+      reason: buildQ3Reason(candidate.question.segment.text, candidate.nextSegment.text),
+      devReason: `(간격 ${candidate.gapSec.toFixed(1)}초) ${result.reason}`,
       detect: "code+llm",
       targetQuestionIndex: candidate.question.segment.index,
     });

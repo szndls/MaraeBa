@@ -15,6 +15,16 @@ ${guidelines}
 아래 목록에 있는 단어는 이미 교육과정 용어로 처리되었으니 절대 다시 찾지 마세요:
 ${excludedTerms.join(", ")}
 
+term이 제외 목록의 단어를 부분으로라도 포함하면 안 됩니다. 어려운 어휘가 제외
+목록의 단어와 조사로 붙어서 하나의 구절처럼 보여도(예: "~의 ~"), 제외 목록
+단어 부분은 반드시 잘라내고 나머지 어려운 부분만 term으로 적으세요. "둘을 합친
+구절 전체가 그 개념을 가리킨다"고 느껴지더라도 예외 없이 자르세요 — 제외
+목록 단어는 이미 다른 단계에서 처리되므로, 거기 포함되면 그 용어가 중복으로
+잡힌 것과 같습니다.
+예: 제외 목록에 "최소공배수"가 있고 발화가 "최소공배수의 귀납적 성질을 보면
+항상 원래 수보다 커요"라면, term은 "최소공배수의 귀납적 성질"이 아니라 "귀납적
+성질"만 적으세요(앞의 "최소공배수의"는 잘라냄).
+
 찾은 게 없으면 findings를 빈 배열로 반환하세요.`;
 }
 
@@ -86,11 +96,36 @@ export async function detectHardWords(
 
   const parsed = JSON.parse(content) as { findings: LlmHardWordResult[] };
   const excludedSet = new Set(excludedTerms);
+  // 긴 용어부터 검사해야 "단위분수"가 "분수"보다 먼저 매치된다(둘 다 제외 목록에
+  // 있을 때 더 많이 잘라내는 쪽이 맞음).
+  const excludedTermsByLength = [...excludedTerms].sort((a, b) => b.length - a.length);
+  // 제외 용어 뒤에 자연스럽게 붙는 조사들 — 이 중 하나가 붙어 있으면 조사까지 같이 뗀다.
+  const PARTICLES = ["의", "은", "는", "이", "가", "을", "를", "와", "과", "로", "으로", "에", "에서"];
 
-  // LLM이 제외 지시를 무시하고 이미 교육과정 목록에 있는 용어를 다시 반환하는 경우가 있어
-  // (프롬프트만으로는 100% 보장 안 됨) 코드에서 한 번 더 걸러낸다.
+  /**
+   * LLM이 제외 지시를 무시하고 이미 교육과정 목록에 있는 용어를 term 앞에 붙여서
+   * 반환하는 경우가 있다(예: "단위분수"가 제외 목록에 있는데 "단위분수의 대소
+   * 관계"를 통째로 term으로 냄 — 프롬프트만으로는 100% 막히지 않아서 실측으로
+   * 확인됨). term이 제외 용어로 시작하면 그 부분(+조사)을 코드로 잘라낸다.
+   */
+  function stripLeadingExcludedTerm(term: string): string {
+    for (const excluded of excludedTermsByLength) {
+      if (!term.startsWith(excluded)) continue;
+      let rest = term.slice(excluded.length);
+      for (const p of PARTICLES) {
+        if (rest.startsWith(p)) {
+          rest = rest.slice(p.length);
+          break;
+        }
+      }
+      return rest.trim();
+    }
+    return term;
+  }
+
   return parsed.findings
-    .filter((f) => !excludedSet.has(f.term))
+    .map((f) => ({ ...f, term: stripLeadingExcludedTerm(f.term) }))
+    .filter((f) => f.term.length > 0 && !excludedSet.has(f.term))
     .map((f) => ({
       term: f.term,
       category: "unlisted_hard_word" as const,

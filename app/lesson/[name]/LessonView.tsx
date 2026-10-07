@@ -102,7 +102,10 @@ export function LessonView({
     <div className="mx-auto max-w-6xl p-4 lg:flex lg:items-start lg:gap-4">
       <div className="min-w-0 flex-1 space-y-4">
         <div className="flex items-center justify-between gap-2">
-          <h1 className="text-xl font-semibold text-slate-800">{analysis.sourceFile}</h1>
+          <h1 className="text-xl font-semibold text-slate-800">
+            {analysis.conceptMatch.grade}학년 · {analysis.conceptMatch.standardCode}{" "}
+            {analysis.conceptMatch.standardSummary}
+          </h1>
           {isRecomputing && <span className="text-xs text-slate-400">재계산 중...</span>}
         </div>
         <Legend activeFilters={activeFilters} onToggle={toggleFilter} />

@@ -1,6 +1,7 @@
 import type { NormalizedTranscript, TranscriptSegment } from "../types/transcript.js";
 import type { ClassifiedQuestion, QuestioningFinding } from "../types/questioning.js";
 import { getCriterion, getQuestionTypes, severityRank } from "../criteria/loadQuestioningCriteria.js";
+import { buildQ5Reason } from "../report/findingReason.js";
 
 interface ThresholdCondition {
   condition: string;
@@ -142,15 +143,15 @@ export function checkWaitTime(
   return evaluations
     .filter((e) => e.severity !== null && e.nextSegment !== null && e.waitTimeSec !== null)
     .map((e) => {
-      const reasonParts = e.matchedConditions.map((c) => `${c.condition}(${c.description})`);
-      const reason = `대기 시간 ${e.waitTimeSec!.toFixed(1)}초, 발문 유형 "${e.question.questionType}" — 해당 조건: ${reasonParts.join("; ")}`;
+      const devReasonParts = e.matchedConditions.map((c) => `${c.condition}(${c.description})`);
 
       return {
         criterionId: "Q5",
         criterionName: criterion.name,
         severity: e.severity!,
         segments: [e.question.segment, e.nextSegment!],
-        reason,
+        reason: buildQ5Reason(e.waitTimeSec!, e.question.questionType),
+        devReason: `대기 시간 ${e.waitTimeSec!.toFixed(1)}초, 발문 유형 "${e.question.questionType}" — 해당 조건: ${devReasonParts.join("; ")}`,
         detect: "code" as const,
         targetQuestionIndex: e.question.segment.index,
       };
