@@ -52,6 +52,11 @@ true/false와 이유를 답하면, 코드가 이 값들을 조합해서 최종 �
 6. q8HasPraiseExpression: 응답 구간 안에 학생을 칭찬하는 표현이 있는가?
    ("잘했어요", "훌륭해요", "좋아요", "대단해요" 등 — 이 예시에 없는 말도 같은 기능이면
    true. ${q8.name} 기준: ${q8.description})
+   주의: "맞아요", "정답!", "딩동댕", "그렇지"처럼 정답/오답 여부만 판정하는 표현은
+   q6HasEvaluativeExpression의 대상이지 칭찬이 아닙니다 — q8HasPraiseExpression=false로
+   두세요. 같은 응답 구간이 Q6과 Q8에 동시에 걸리는 건 둘 다 독립적으로 참일 때만
+   정상입니다(예: "정답! 잘했어요"처럼 평가와 칭찬이 각각 따로 있을 때). "정답!"
+   하나만 있다면 평가일 뿐 칭찬이 아니므로 q8HasPraiseExpression=false입니다.
 
 7. q8IsSpecific: q8HasPraiseExpression이 true라면, 그 칭찬이 무엇이 좋았는지 구체적인
    설명을 동반하는가? (판단 규칙: ${q8.judge_rule}) q8HasPraiseExpression이 false이면

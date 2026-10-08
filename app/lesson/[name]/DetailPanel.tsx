@@ -106,8 +106,10 @@ export function DetailPanel({
       </ul>
 
       {relatedSuggestions.map((s) => {
+        // whatAndWhy(왜 이렇게 고쳐야 할까요)는 위쪽 지적 이유와 내용이 겹치는
+        // 일반론이라 패널에서는 숨긴다 — 데이터(Suggestion.whatAndWhy)는 그대로
+        // 남아 있고, 분석 결과 JSON에도 계속 저장된다.
         const visibility = getSuggestionFieldVisibility(s.validation);
-        const whatAndWhyHere = s.whatAndWhy.filter((w) => activeCriteriaHere.has(w.criterionId));
         return (
           <div key={s.questionIndex} className="space-y-2 border-t border-slate-100 pt-3">
             <h3 className="text-sm font-semibold text-slate-600">개선안 (발문 [{s.questionIndex}])</h3>
@@ -120,18 +122,6 @@ export function DetailPanel({
             )}
             {showReactionFields && (
               <FieldBlock label="교사 반응 대사" value={s.revisedResponseLine} ok={visibility.responseLine} />
-            )}
-            {whatAndWhyHere.length > 0 && (
-              <div className="rounded-md bg-slate-50 px-3 py-2 text-sm">
-                <div className="mb-1 font-medium text-slate-500">왜 이렇게 고쳐야 할까요</div>
-                <ul className="space-y-1">
-                  {whatAndWhyHere.map((w, i) => (
-                    <li key={i} className="text-slate-700">
-                      {w.why}
-                    </li>
-                  ))}
-                </ul>
-              </div>
             )}
           </div>
         );
