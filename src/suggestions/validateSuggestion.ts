@@ -238,8 +238,11 @@ export async function validateSuggestionContent(
       reclassifiedOk = false;
       notes.push("문장형 기준이 걸려있는데 개선 발문(revisedQuestionLine)이 비어있음");
     } else {
+      const syntheticSegment = { ...group.question.segment, text: raw.revisedQuestionLine };
       const syntheticCandidate: QuestionCandidate = {
-        segment: { ...group.question.segment, text: raw.revisedQuestionLine },
+        segment: syntheticSegment,
+        text: raw.revisedQuestionLine,
+        turnSegments: [syntheticSegment],
         questionMarkCount: countQuestionMarks(raw.revisedQuestionLine),
       };
       const { questions, findings } = await classifyAndCheckQuestions([syntheticCandidate]);

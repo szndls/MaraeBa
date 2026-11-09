@@ -1,7 +1,15 @@
 import type { TranscriptSegment } from "./transcript.js";
 
 export interface QuestionCandidate {
+  /** 안정 ID·UI용 "대표" 세그먼트 — 이 문장이 시작되는 원본 세그먼트. 지적은 항상
+   *  실제 세그먼트 index를 가리켜야 하므로, 턴/문장으로 재구성해도 이 필드는 늘 원본이다. */
   segment: TranscriptSegment;
+  /** 판정에 실제로 쓰는 문장 텍스트 — 턴을 문장부호로 쪼갠 것이라 segment.text와
+   *  다를 수 있다(여러 세그먼트가 이어진 턴에서 쪼갠 경우 등). */
+  text: string;
+  /** 이 문장이 속한 턴 전체의 원본 세그먼트(1개 이상, 시간 순서대로). Q1·Q9처럼 턴
+   *  단위로 판단하는 기준이 턴 전체 텍스트를 보거나, 지적에 턴 전체를 담을 때 쓴다. */
+  turnSegments: TranscriptSegment[];
   questionMarkCount: number;
 }
 

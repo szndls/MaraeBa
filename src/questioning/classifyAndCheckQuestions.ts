@@ -63,6 +63,16 @@ function buildSystemPrompt(questionTypes: string[]): string {
 각 후보는 물음표나 의문형 어미로 끝나서 "발문일 가능성이 있다"고 코드가 골라낸 것입니다.
 실제로 발문이 아닌 경우(예: 의문형 어미지만 질문이 아닌 서술)도 있으니, isQuestion으로 먼저 판단하세요.
 
+[입력에 text와, 가끔 turnText가 있습니다] text는 판정 대상 문장 그 자체입니다. 일부
+candidate에만 turnText가 추가로 있는데, 그 문장이 들어있는 교사의 전체 발화(턴) 텍스트가
+text보다 더 긴 경우입니다(앞에 다른 문장이 붙어 있거나, STT가 한 호흡을 여러 세그먼트로
+쪼갠 걸 다시 합친 것) — turnText가 없는 candidate는 text 자체가 곧 턴 전체이므로 신경 쓸
+필요 없습니다. isQuestion·questionType·q2_vague·q4AnswerAlreadyGiven·q4ExpectsYesNoOnly·
+q4EndsWithConfirmationTone은 **text**만 보고 판단하세요. q1_compound(겹질문 — 턴 전체에
+서로 다른 질문이 2개 이상 있는가)와 q9_named_first(이름 먼저 부르고 질문 — 턴 안에서
+이름을 부른 뒤 질문했는가)만 turnText가 있으면 **turnText**를, 없으면 text를 보고
+판단하세요.
+
 [isQuestion 판정 시 기본 규칙] 물음표(?)가 문장 안에 있으면 거의 항상 isQuestion=true입니다.
 문장 앞부분에 다른 정의·설명·되짚기가 먼저 나오고 그 뒤에 물음표로 끝나는 질문이 이어져도
 (예: "이걸 최소공배수라고 해요. 그럼 6과 8의 최소공배수는 뭘까요?") 물음표가 있는 질문
@@ -139,20 +149,26 @@ interface LlmQuestionResult {
   q4EndsWithConfirmationTone: AtomicJudgment;
 }
 
-async function callLlm(
-  batch: QuestionCandidate[],
-  questionTypes: string[]
-): Promise<LlmQuestionResult[]> {
+/** classifyWithMajorityVote가 매기는 호출 전용 임시 id — candidate.segment.index는
+ *  한 세그먼트에 문장이 여러 개면 candidate끼리 겹칠 수 있어서 쓸 수 없다. */
+interface CandidateItem {
+  id: number;
+  candidate: QuestionCandidate;
+}
+
+async function callLlm(batch: CandidateItem[], questionTypes: string[]): Promise<LlmQuestionResult[]> {
   const client = getOpenAIClient();
   const model = getAnalysisModel();
   const systemPrompt = buildSystemPrompt(questionTypes);
 
   const input = {
-    candidates: batch.map((c) => ({
-      id: c.segment.index,
-      text: c.segment.text,
-      questionMarkCount: c.questionMarkCount,
-    })),
+    candidates: batch.map(({ id, candidate }) => {
+      const base = { id, text: candidate.text, questionMarkCount: candidate.questionMarkCount };
+      const turnText = candidate.turnSegments.map((s) => s.text).join(" ");
+      // turnText가 text와 같으면(턴이 한 문장뿐이면) 아예 빼서 "똑같은 필드가 왜 두 개"
+      // 같은 혼란을 줄인다 — 이 필드가 없는 candidate는 text와 turnText가 같다는 뜻.
+      return turnText === candidate.text ? base : { ...base, turnText };
+    }),
   };
 
   const flagSchema = {
@@ -272,21 +288,17 @@ async function classifyWithMajorityVote(
   questionTypes: string[],
   repeats: number
 ): Promise<Map<number, LlmQuestionResult>> {
-  const runOnePass = () =>
-    requestBatchInChunks(
-      candidates.map((c) => ({ id: c.segment.index, candidate: c })),
-      CHUNK_SIZE,
-      async (batch) => callLlm(batch.map((b) => b.candidate), questionTypes),
-      "발문 분류"
-    );
+  const items: CandidateItem[] = candidates.map((candidate, id) => ({ id, candidate }));
+
+  const runOnePass = () => requestBatchInChunks(items, CHUNK_SIZE, (batch) => callLlm(batch, questionTypes), "발문 분류");
 
   if (repeats <= 1) return runOnePass();
 
   const passes = await Promise.all(Array.from({ length: repeats }, () => runOnePass()));
 
   const merged = new Map<number, LlmQuestionResult>();
-  for (const candidate of candidates) {
-    const id = candidate.segment.index;
+  for (const item of items) {
+    const id = item.id;
     const perPass = passes.map((p) => p.get(id)).filter((r): r is LlmQuestionResult => r !== undefined);
     if (perPass.length === 0) continue;
 
@@ -343,8 +355,12 @@ export async function classifyAndCheckQuestions(
     Q9: { key: "q9_named_first", buildReason: buildQ9Reason },
   };
 
-  for (const candidate of candidates) {
-    const result = resultMap.get(candidate.segment.index);
+  // "turn" 단위 기준(Q1·Q9)은 같은 턴에서 문장마다 반복 판정되므로, 턴당 지적 1건으로
+  // 줄인다 — criteria 파일의 analysis_unit을 코드가 읽어서 판단한다(하드코딩 안 함).
+  const seenTurnFindings = new Set<string>();
+
+  for (const [localId, candidate] of candidates.entries()) {
+    const result = resultMap.get(localId);
     if (!result) continue; // 재시도 후에도 누락된 경우
 
     if (!result.isQuestion) continue; // 발문이 아니면 제외
@@ -360,16 +376,35 @@ export async function classifyAndCheckQuestions(
       const flag = result[meta.key] as LlmFlag;
       if (!flag.flag) continue;
       const criterion = getCriterion(id);
-      findings.push({
-        criterionId: id,
-        criterionName: criterion.name,
-        severity: criterion.severity ?? "미지정",
-        segments: [candidate.segment],
-        reason: meta.buildReason(candidate.segment.text),
-        devReason: flag.reason,
-        detect: "llm",
-        targetQuestionIndex: candidate.segment.index,
-      });
+
+      if (criterion.analysis_unit === "turn") {
+        const turnKey = candidate.turnSegments[0].index;
+        const dedupKey = `${id}:${turnKey}`;
+        if (seenTurnFindings.has(dedupKey)) continue;
+        seenTurnFindings.add(dedupKey);
+
+        findings.push({
+          criterionId: id,
+          criterionName: criterion.name,
+          severity: criterion.severity ?? "미지정",
+          segments: candidate.turnSegments,
+          reason: meta.buildReason(candidate.turnSegments.map((s) => s.text).join(" ")),
+          devReason: flag.reason,
+          detect: "llm",
+          targetQuestionIndex: turnKey,
+        });
+      } else {
+        findings.push({
+          criterionId: id,
+          criterionName: criterion.name,
+          severity: criterion.severity ?? "미지정",
+          segments: [candidate.segment],
+          reason: meta.buildReason(candidate.text),
+          devReason: flag.reason,
+          detect: "llm",
+          targetQuestionIndex: candidate.segment.index,
+        });
+      }
     }
 
     // Q4: 의미 판단은 "답이 이미 들어있다"와 "예/아니오만 요구한다" 둘 다 참이어야 한다
@@ -381,8 +416,7 @@ export async function classifyAndCheckQuestions(
     // 놓치지 않도록, 코드의 목록 일치와 LLM의 어조 판단 중 하나만 참이어도 만족시킨다.
     const semanticSignal = result.q4AnswerAlreadyGiven.value && result.q4ExpectsYesNoOnly.value;
     const structuralSignal =
-      endsWithConfirmationEnding(candidate.segment.text, q4Patterns) ||
-      result.q4EndsWithConfirmationTone.value;
+      endsWithConfirmationEnding(candidate.text, q4Patterns) || result.q4EndsWithConfirmationTone.value;
     if (semanticSignal && structuralSignal) {
       const criterion = getCriterion("Q4");
       findings.push({
@@ -390,7 +424,7 @@ export async function classifyAndCheckQuestions(
         criterionName: criterion.name,
         severity: criterion.severity ?? "미지정",
         segments: [candidate.segment],
-        reason: buildQ4Reason(candidate.segment.text),
+        reason: buildQ4Reason(candidate.text),
         devReason: `${result.q4AnswerAlreadyGiven.reason} / ${result.q4ExpectsYesNoOnly.reason} / ${result.q4EndsWithConfirmationTone.reason}`,
         detect: "llm",
         targetQuestionIndex: candidate.segment.index,

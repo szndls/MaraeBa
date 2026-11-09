@@ -3,6 +3,15 @@ import { getAnalysisModel, getOpenAIClient } from "../llm/client.js";
 import { requestBatchInChunks } from "../llm/batchWithRetry.js";
 import { getCriterion } from "../criteria/loadQuestioningCriteria.js";
 import { buildQ6Reason, buildQ7Reason, buildQ8Reason } from "../report/findingReason.js";
+import { splitTurnIntoSentences, type Sentence } from "./reconstructUtterances.js";
+
+/** Q6·Q7·Q8은 문장(sentence) 단위로 판단한다 — STT가 여러 발화를 한 세그먼트로
+ *  합쳐버리면(예: 칭찬+설명+활동지시가 한 덩어리) "구체적인가" 판정이 흔들리므로,
+ *  responseWindowSegments를 문장부호로 다시 쪼개서 LLM에 준다. */
+function splitResponseWindowIntoSentences(segments: ResponseEvent["responseWindowSegments"]): Sentence[] {
+  if (segments.length === 0) return [];
+  return splitTurnIntoSentences({ speaker: segments[0].speaker, segments });
+}
 
 const RESPONSE_CRITERIA_IDS = ["Q6", "Q7", "Q8"] as const;
 
@@ -283,19 +292,25 @@ export async function checkResponseHandling(
   const targets = events.filter((e) => e.responseWindowSegments.length > 0 || e.nextQuestionSegment);
   if (targets.length === 0) return { findings: [], probingResults: [] };
 
-  const inputs: Array<ResponseJudgmentInput & { event: ResponseEvent }> = targets.map((event) => ({
-    id: event.studentSegment.index,
-    precedingQuestionText: event.precedingQuestionSegment?.text ?? null,
-    studentAnswerText: event.studentSegment.text,
-    responseTexts: event.responseWindowSegments.map((s) => s.text),
-    nextQuestionText: event.nextQuestionSegment?.text ?? null,
-    event,
-  }));
+  const inputs: Array<ResponseJudgmentInput & { event: ResponseEvent; responseSentences: Sentence[] }> = targets.map(
+    (event) => {
+      const responseSentences = splitResponseWindowIntoSentences(event.responseWindowSegments);
+      return {
+        id: event.studentSegment.index,
+        precedingQuestionText: event.precedingQuestionSegment?.text ?? null,
+        studentAnswerText: event.studentSegment.text,
+        responseTexts: responseSentences.map((s) => s.text),
+        nextQuestionText: event.nextQuestionSegment?.text ?? null,
+        event,
+        responseSentences,
+      };
+    }
+  );
 
   const resultMap = await requestBatchInChunks(
     inputs,
     CHUNK_SIZE,
-    async (batch) => callLlm(batch.map(({ event, ...rest }) => rest)),
+    async (batch) => callLlm(batch.map(({ event, responseSentences, ...rest }) => rest)),
     "응답 구간 판정"
   );
 
@@ -322,7 +337,8 @@ export async function checkResponseHandling(
       hasProbingInWindow: result.hasProbingInWindow.value,
     });
 
-    const reactionText = event.responseWindowSegments[0]?.text ?? "";
+    const firstSentence = input.responseSentences[0];
+    const reactionText = firstSentence?.text ?? "";
 
     const reasons: Record<"Q6" | "Q7" | "Q8", string> = {
       Q6: buildQ6Reason(reactionText),
@@ -348,8 +364,8 @@ export async function checkResponseHandling(
         devReason: devReasons[id],
         detect: "llm",
         targetQuestionIndex: event.precedingQuestionSegment?.index ?? null,
-        // 고쳐야 할 반응은 보통 응답 구간의 첫 발화(학생 답 직후 첫 반응)다.
-        targetReactionSegmentIndex: event.responseWindowSegments[0]?.index ?? null,
+        // 고쳐야 할 반응은 보통 응답 구간의 첫 문장이 속한 발화(학생 답 직후 첫 반응)다.
+        targetReactionSegmentIndex: firstSentence?.sourceSegments[0]?.index ?? event.responseWindowSegments[0]?.index ?? null,
       });
     }
   }

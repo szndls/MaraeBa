@@ -10,6 +10,8 @@ export interface QuestioningCriterion {
   name: string;
   description: string;
   detect: "code" | "llm" | "code+llm";
+  /** 이 기준이 턴/문장/세그먼트 중 어느 단위로 판단하는지 — reconstruction 설정 참고 */
+  analysis_unit?: "turn" | "sentence" | "segment";
   hint_for_code?: string;
   judge_rule?: string;
   severity?: string;
@@ -51,6 +53,11 @@ export interface QuestioningCriteriaFile {
     wait_time_1: string;
     wait_time_2: string;
     severity: Record<string, string>;
+  };
+  reconstruction?: {
+    turn_merge_gap_sec: number;
+    note?: string;
+    units?: Record<string, string>;
   };
   criteria: QuestioningCriterion[];
   excluded: Array<{ name: string; reason: string }>;
@@ -97,6 +104,15 @@ export function getQuestionTypes(): string[] {
 
 export function getQuestionCandidateEndings(): string[] {
   return loadQuestioningCriteria().question_candidate_endings.endings;
+}
+
+/** 같은 화자가 이 간격(초) 이하로 이어지면 한 턴으로 묶는다 — src/questioning/reconstructUtterances.ts */
+export function getTurnMergeGapSec(): number {
+  const value = loadQuestioningCriteria().reconstruction?.turn_merge_gap_sec;
+  if (typeof value !== "number") {
+    throw new Error("criteria/questioning-criteria.json에 reconstruction.turn_merge_gap_sec이 없습니다.");
+  }
+  return value;
 }
 
 /** 후보를 넓게 잡는 힌트로만 쓰는 대표 표현 목록. 없으면 빈 배열(힌트 없이 LLM이 전부 판단). */

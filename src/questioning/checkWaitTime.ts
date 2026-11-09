@@ -1,7 +1,8 @@
 import type { NormalizedTranscript, TranscriptSegment } from "../types/transcript.js";
 import type { ClassifiedQuestion, QuestioningFinding } from "../types/questioning.js";
-import { getCriterion, getQuestionTypes, severityRank } from "../criteria/loadQuestioningCriteria.js";
+import { getCriterion, getQuestionTypes, getTurnMergeGapSec, severityRank } from "../criteria/loadQuestioningCriteria.js";
 import { buildQ5Reason } from "../report/findingReason.js";
+import { buildTurns, buildTurnKeyIndex, buildTurnEndIndex } from "./reconstructUtterances.js";
 
 interface ThresholdCondition {
   condition: string;
@@ -50,6 +51,21 @@ function conditionMatches(cond: ThresholdCondition, waitTimeSec: number, questio
   );
 }
 
+/** 한 턴에 질문이 여러 개(Q1 겹질문 등)면, 턴 안에서 가장 나중에 나온 질문에만
+ *  대기 시간을 계산한다 — 앞선 질문들은 교사가 쉬지 않고 이어 말해서 "기다림" 자체가
+ *  없었다. questions는 이미 턴 안 등장 순서대로 들어온다(extractQuestions.ts 참고). */
+function computeLastQuestionPerTurn(
+  questions: ClassifiedQuestion[],
+  turnKeyBySegmentIndex: Map<number, number>
+): Set<ClassifiedQuestion> {
+  const lastByTurn = new Map<number, ClassifiedQuestion>();
+  for (const question of questions) {
+    const turnKey = turnKeyBySegmentIndex.get(question.segment.index) ?? question.segment.index;
+    lastByTurn.set(turnKey, question); // 나중에 덮어써지는 게 그 턴의 마지막 질문
+  }
+  return new Set(lastByTurn.values());
+}
+
 /** 발문 전체에 대한 대기시간 평가 목록을 만든다 (지적 여부와 무관하게 전부 포함) */
 export function evaluateWaitTimes(
   transcript: NormalizedTranscript,
@@ -61,8 +77,28 @@ export function evaluateWaitTimes(
   }
   const conditions = parseThresholds(criterion.thresholds);
 
+  const turns = buildTurns(transcript.segments, getTurnMergeGapSec());
+  const turnKeyBySegmentIndex = buildTurnKeyIndex(turns);
+  const turnEndBySegmentIndex = buildTurnEndIndex(turns);
+  const isLastQuestionInTurn = computeLastQuestionPerTurn(questions, turnKeyBySegmentIndex);
+
   return questions.map((question) => {
-    const nextSegment = transcript.segments[question.segment.index + 1] ?? null;
+    if (!isLastQuestionInTurn.has(question)) {
+      return {
+        question,
+        nextSegment: null,
+        waitTimeSec: null,
+        skippedReason: "같은 턴 안에서 이어 말한 질문 — 턴의 마지막 질문에만 대기 시간을 계산함",
+        matchedConditions: [],
+        severity: null,
+      };
+    }
+
+    // 같은 턴 안의 숨 고르기(같은 화자가 짧은 간격으로 이어 말한 세그먼트)는 "기다림"이
+    // 아니므로 건너뛰고, 턴이 실제로 끝나는 지점부터 다음 발화를 찾는다.
+    const turnEndIndex = turnEndBySegmentIndex.get(question.segment.index) ?? question.segment.index;
+    const turnEndSegment = transcript.segments[turnEndIndex];
+    const nextSegment = transcript.segments[turnEndIndex + 1] ?? null;
 
     if (!nextSegment) {
       return {
@@ -85,7 +121,7 @@ export function evaluateWaitTimes(
       };
     }
 
-    const waitTimeSec = Math.max(0, nextSegment.start - question.segment.end);
+    const waitTimeSec = Math.max(0, nextSegment.start - turnEndSegment.end);
     const matched = conditions.filter((c) => conditionMatches(c, waitTimeSec, question.questionType));
     const severity =
       matched.length === 0
