@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "analyze": "tsx src/run.ts",
+    "transcribe": "tsx src/transcribe.ts",
     "dev": "next dev --webpack",
     "build": "next build --webpack",
     "start": "next start"

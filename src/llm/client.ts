@@ -21,3 +21,7 @@ export function getOpenAIClient(): OpenAI {
 export function getAnalysisModel(): string {
   return process.env.OPENAI_ANALYSIS_MODEL || "gpt-4o-mini";
 }
+
+export function getTranscribeModel(): string {
+  return process.env.OPENAI_TRANSCRIBE_MODEL || "gpt-4o-transcribe-diarize";
+}

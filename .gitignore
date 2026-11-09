@@ -3,6 +3,7 @@ node_modules/
 .env
 dist/
 output/
+recordings/
 .DS_Store
 .next/
 next-env.d.ts
