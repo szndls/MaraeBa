@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import type { AnalysisResult } from "../../../src/types/analysis.js";
 import type { LessonReport } from "../../../src/types/report.js";
 import { computeFindingId } from "../../../src/report/findingId.js";
 import { computeSegmentHighlights } from "../../lib/computeHighlights.js";
-import { HIGHLIGHT_GROUPS, type HighlightGroupKey } from "../../lib/highlightConfig.js";
+import { HIGHLIGHT_GROUPS, groupForCriterion, type HighlightGroupKey } from "../../lib/highlightConfig.js";
 import { loadIgnoredIds, saveIgnoredIds } from "../../lib/localIgnoreStore.js";
 import { Legend } from "./Legend.js";
 import { TranscriptPane } from "./TranscriptPane.js";
@@ -20,11 +21,25 @@ export function LessonView({
   name,
   analysis,
   severityOrder,
+  initiallySaved,
 }: {
   name: string;
   analysis: AnalysisResult;
   severityOrder: string[];
+  initiallySaved: boolean;
 }) {
+  // 저장하기: 누르면 기록 목록에 들어간다
+  const [isSaved, setIsSaved] = useState(initiallySaved);
+  const [isSaving, setIsSaving] = useState(false);
+  async function save() {
+    setIsSaving(true);
+    try {
+      const res = await fetch("/api/saved", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name }) });
+      if (res.ok) setIsSaved(true);
+    } finally {
+      setIsSaving(false);
+    }
+  }
   const [ignoredFindingIds, setIgnoredFindingIds] = useState<Set<string>>(new Set());
   const [report, setReport] = useState<LessonReport>(analysis.report);
   const [selectedSegmentIndex, setSelectedSegmentIndex] = useState<number | null>(null);
@@ -98,17 +113,47 @@ export function LessonView({
     [analysis.transcript, filteredFindings, analysis.vocabFindings, analysis.waitTimeEvaluations, severityOrder]
   );
 
+  // 범례 옆에 보여 줄 묶음별 지적 개수 (무시한 지적은 빼고 센다)
+  const groupCounts = useMemo(() => {
+    const counts: Record<HighlightGroupKey, number> = { question: 0, wait: 0, reaction: 0, vocab: 0 };
+    for (const f of filteredFindings) {
+      const g = groupForCriterion(f.criterionId);
+      if (g) counts[g] += 1;
+    }
+    counts.vocab = analysis.vocabFindings.length;
+    return counts;
+  }, [filteredFindings, analysis.vocabFindings]);
+
   return (
-    <div className="mx-auto max-w-6xl p-4 lg:flex lg:items-start lg:gap-4">
+    <main className="mx-auto max-w-6xl px-4 pb-24 pt-6 lg:flex lg:items-start lg:gap-5">
       <div className="min-w-0 flex-1 space-y-4">
-        <div className="flex items-center justify-between gap-2">
-          <h1 className="text-xl font-semibold text-slate-800">
-            {analysis.conceptMatch.grade}학년 · {analysis.conceptMatch.standardCode}{" "}
-            {analysis.conceptMatch.standardSummary}
-          </h1>
-          {isRecomputing && <span className="text-xs text-slate-400">재계산 중...</span>}
+        {/* 저장하기 · 홈으로 */}
+        <div className="flex items-center justify-end gap-2">
+          <Link href="/" className="rounded-xl border border-line bg-white px-4 py-2 text-sm font-semibold text-stone-600 hover:bg-stone-50">
+            홈으로
+          </Link>
+          <button
+            type="button"
+            onClick={save}
+            disabled={isSaved || isSaving}
+            className="rounded-xl bg-chalk px-4 py-2 text-sm font-semibold text-white hover:brightness-110 disabled:opacity-60"
+          >
+            {isSaved ? "✓ 저장됨" : isSaving ? "저장하는 중…" : "저장하기"}
+          </button>
         </div>
-        <Legend activeFilters={activeFilters} onToggle={toggleFilter} />
+        {/* 수업 제목 카드 */}
+        <section className="card overflow-hidden">
+          <div className="bg-chalk px-5 py-5 text-white">
+            <div className="mb-1 flex items-center gap-2 text-xs font-medium text-white/70">
+              <span>{analysis.conceptMatch.grade}학년 수학</span>
+              <span className="rounded-full bg-white/15 px-2 py-0.5">{analysis.conceptMatch.standardCode}</span>
+              {isRecomputing && <span className="ml-auto animate-pulse">다시 계산하는 중…</span>}
+            </div>
+            <h1 className="text-xl font-bold leading-snug sm:text-2xl">{analysis.conceptMatch.standardSummary}</h1>
+          </div>
+          <Legend activeFilters={activeFilters} onToggle={toggleFilter} counts={groupCounts} />
+        </section>
+
         <TranscriptPane
           transcript={analysis.transcript}
           highlights={highlights}
@@ -125,7 +170,7 @@ export function LessonView({
         />
       </div>
 
-      {selectedSegmentIndex !== null && (
+      {selectedSegmentIndex !== null ? (
         <DetailPanel
           selectedSegmentIndex={selectedSegmentIndex}
           questioningFindings={analysis.questioningFindings}
@@ -134,7 +179,14 @@ export function LessonView({
           onToggleIgnore={toggleIgnore}
           onClose={() => setSelectedSegmentIndex(null)}
         />
+      ) : (
+        // 아무 발화도 고르지 않았을 때 넓은 화면 오른쪽에 보이는 안내
+        <aside className="card sticky top-20 hidden w-96 shrink-0 p-6 text-center lg:block">
+          <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-full bg-chalk-soft text-xl">👆</div>
+          <p className="font-semibold">형광펜이 칠해진 발화를 눌러 보세요</p>
+          <p className="mt-1 text-sm leading-relaxed text-stone-500">왜 지적되었는지와 바로 쓸 수 있는 개선 발문이 여기에 나타나요.</p>
+        </aside>
       )}
-    </div>
+    </main>
   );
 }

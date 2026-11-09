@@ -5,6 +5,7 @@ import { loadFromSyntheticJson } from "./input/loadTranscript.js";
 import { matchConcept } from "./concept/matchConcept.js";
 import { detectKnownTerms } from "./vocab/detectKnownTerms.js";
 import { detectHardWords } from "./vocab/detectHardWords.js";
+import { isUnlistedHardWordDetectionEnabled } from "./criteria/loadVocabSettings.js";
 import type { VocabFinding } from "./types/vocab.js";
 import { extractQuestionCandidates } from "./questioning/extractQuestions.js";
 import { classifyAndCheckQuestions } from "./questioning/classifyAndCheckQuestions.js";
@@ -130,7 +131,9 @@ async function main() {
   }
   console.log("\n[3단계] 용어 탐지 (코드: 목록 대조 / LLM: 목록 외 어려운 어휘)");
   const knownTermFindings = detectKnownTerms(transcript, conceptMatch);
-  const hardWordFindings = await detectHardWords(transcript, transcript.meta.grade);
+  const hardWordFindings = isUnlistedHardWordDetectionEnabled()
+    ? await detectHardWords(transcript, transcript.meta.grade)
+    : [];
   const vocabFindings: VocabFinding[] = [...knownTermFindings, ...hardWordFindings];
   await writeIntermediate("03-vocab-findings.json", vocabFindings);
 

@@ -24,7 +24,7 @@ function renderHighlightedText(text: string, vocabSpans: SegmentHighlight["vocab
     if (r.start < cursor) continue; // 겹치면 먼저 찾은 것만 칠함
     if (r.start > cursor) pieces.push(text.slice(cursor, r.start));
     pieces.push(
-      <mark key={r.start} className="rounded bg-purple-200 px-0.5 text-purple-900">
+      <mark key={r.start} className="rounded bg-purple-200 px-0.5 text-purple-900 underline decoration-purple-400 decoration-2 underline-offset-2">
         {text.slice(r.start, r.end)}
       </mark>
     );
@@ -58,30 +58,34 @@ export function TranscriptLine({
   const clickable = visibleBadges.length > 0;
   const showWaitChip = highlight?.waitChip && isGroupVisible("wait");
 
+  const isTeacher = segment.speaker === "teacher";
+
   return (
     <div id={`segment-${segment.index}`}>
       <div
-        className={`flex flex-col gap-0.5 rounded-md px-2 py-1.5 sm:flex-row sm:items-start sm:gap-3 ${
-          segment.speaker === "teacher" ? "" : "opacity-80"
-        } ${isSelected ? "ring-2 ring-slate-400" : ""} ${clickable ? "cursor-pointer hover:brightness-95" : ""}`}
+        className={`group flex flex-col gap-1 rounded-xl px-3 py-2.5 transition sm:flex-row sm:items-start sm:gap-3 ${
+          isSelected ? "bg-chalk-soft ring-2 ring-chalk/40" : ""
+        } ${clickable ? "cursor-pointer hover:bg-stone-50" : ""}`}
         onClick={clickable ? () => onSelect(segment.index) : undefined}
         role={clickable ? "button" : undefined}
         tabIndex={clickable ? 0 : undefined}
       >
         {/* 모바일: 시각·화자를 한 줄로 묶어 문장 위에 올린다. sm 이상: sm:contents로
-            래퍼를 없애서 두 span이 다시 부모의 직속 가로 칸이 된다(원래 레이아웃). */}
-        <div className="flex gap-2 sm:contents">
-          <span className="text-xs text-slate-400 sm:w-10 sm:shrink-0 sm:pt-0.5">{formatTimestamp(segment.start)}</span>
+            래퍼를 없애서 두 칸이 다시 가로로 놓인다. */}
+        <div className="flex items-center gap-2 sm:contents">
+          <span className="font-mono text-[11px] tabular-nums text-stone-400 sm:w-9 sm:shrink-0 sm:pt-1">
+            {formatTimestamp(segment.start)}
+          </span>
           <span
-            className={`text-xs font-medium sm:w-14 sm:shrink-0 sm:pt-0.5 ${
-              segment.speaker === "teacher" ? "text-slate-600" : "text-slate-400"
+            className={`inline-flex w-fit items-center rounded-md px-1.5 py-0.5 text-[11px] font-semibold sm:w-14 sm:shrink-0 sm:justify-center ${
+              isTeacher ? "bg-chalk text-white" : "bg-stone-100 text-stone-500"
             }`}
           >
-            {segment.speaker === "teacher" ? "선생님" : "학생"}
+            {isTeacher ? "선생님" : "학생"}
           </span>
         </div>
-        <div className="flex-1">
-          <span className={bgClass ? `${bgClass} rounded px-1 py-0.5` : undefined}>
+        <div className={`flex-1 text-[15px] leading-7 ${isTeacher ? "text-ink" : "text-stone-500"}`}>
+          <span className={bgClass ? `${bgClass} box-decoration-clone rounded-md px-1 py-0.5` : undefined}>
             {renderHighlightedText(segment.text, highlight?.vocabSpans ?? [])}
           </span>
           {visibleBadges.length > 0 && (
@@ -89,7 +93,7 @@ export function TranscriptLine({
               {visibleBadges.map((b, i) => (
                 <span
                   key={`${b.criterionId}-${i}`}
-                  className={`rounded-full px-1.5 py-0.5 text-[11px] font-medium ${HIGHLIGHT_GROUPS[b.group].badge}`}
+                  className={`rounded-full px-2 py-0.5 text-[11px] font-semibold leading-4 ${HIGHLIGHT_GROUPS[b.group].badge}`}
                 >
                   {b.criterionName}
                 </span>

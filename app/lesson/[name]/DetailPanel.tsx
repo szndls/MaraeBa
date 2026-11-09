@@ -14,15 +14,15 @@ function FieldBlock({ label, value, ok }: { label: string; value: string | null;
   if (!value) return null;
   if (!ok) {
     return (
-      <div className="rounded-md bg-slate-50 px-3 py-2 text-sm text-slate-400">
+      <div className="rounded-xl bg-stone-50 px-3.5 py-2.5 text-sm text-stone-400">
         <span className="font-medium">{label}</span> — 검토 필요 (AI가 다시 확인이 필요해요)
       </div>
     );
   }
   return (
-    <div className="rounded-md bg-slate-50 px-3 py-2 text-sm">
-      <div className="mb-0.5 font-medium text-slate-500">{label}</div>
-      <div className="text-slate-800">{value}</div>
+    <div className="rounded-xl border-l-4 border-chalk bg-chalk-soft/60 px-3.5 py-2.5 text-sm">
+      <div className="mb-1 text-xs font-semibold text-chalk">{label}</div>
+      <div className="leading-relaxed text-ink">{value}</div>
     </div>
   );
 }
@@ -61,15 +61,16 @@ export function DetailPanel({
   const showReactionFields = REACTION_MOMENT_CRITERIA.some((id) => activeCriteriaHere.has(id));
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-40 max-h-[75vh] overflow-y-auto rounded-t-2xl border-t border-slate-200 bg-white p-4 shadow-lg lg:sticky lg:top-4 lg:inset-auto lg:max-h-[calc(100vh-2rem)] lg:w-96 lg:shrink-0 lg:rounded-lg lg:border lg:shadow-none">
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="font-semibold text-slate-700">발화 [{selectedSegmentIndex}] 상세</h2>
-        <button type="button" onClick={onClose} className="rounded px-2 py-1 text-slate-400 hover:bg-slate-100">
-          닫기
+    <div className="fixed inset-x-0 bottom-0 z-40 max-h-[75vh] overflow-y-auto rounded-t-3xl border-t border-line bg-white p-5 shadow-[0_-8px_30px_rgba(0,0,0,0.12)] lg:sticky lg:top-20 lg:inset-auto lg:max-h-[calc(100vh-6rem)] lg:w-96 lg:shrink-0 lg:rounded-2xl lg:border lg:shadow-sm">
+      <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-stone-200 lg:hidden" />
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="font-bold">발화 [{selectedSegmentIndex}] 자세히 보기</h2>
+        <button type="button" onClick={onClose} className="grid h-8 w-8 place-items-center rounded-full text-stone-400 hover:bg-stone-100" aria-label="닫기">
+          ✕
         </button>
       </div>
 
-      {findingsHere.length === 0 && <p className="text-sm text-slate-400">이 발화에 걸린 지적이 없습니다.</p>}
+      {findingsHere.length === 0 && <p className="text-sm text-stone-400">이 발화에 걸린 지적이 없습니다.</p>}
 
       <ul className="mb-4 space-y-2">
         {findingsHere.map((f) => {
@@ -77,7 +78,7 @@ export function DetailPanel({
           const isIgnored = ignoredFindingIds.has(id);
           const group = groupForCriterion(f.criterionId);
           return (
-            <li key={id} className={`rounded-md border p-2.5 ${isIgnored ? "border-slate-200 bg-slate-50 opacity-60" : "border-slate-200"}`}>
+            <li key={id} className={`rounded-xl border p-3.5 ${isIgnored ? "border-line bg-stone-50 opacity-60" : "border-line bg-white"}`}>
               <div className="mb-1 flex items-center justify-between gap-2">
                 <span
                   className={`rounded-full px-2 py-0.5 text-xs font-medium ${
@@ -86,17 +87,17 @@ export function DetailPanel({
                 >
                   {f.criterionName}
                 </span>
-                <span className="text-xs text-slate-400">{f.severity}</span>
+                <span className={`text-xs font-semibold ${f.severity === "문제" ? "text-rose-600" : "text-amber-600"}`}>{f.severity}</span>
               </div>
               {isIgnored ? (
-                <p className="text-sm italic text-slate-400">무시한 지적이에요.</p>
+                <p className="text-sm italic text-stone-400">무시한 지적이에요.</p>
               ) : (
-                <p className="text-sm text-slate-700">{f.reason}</p>
+                <p className="text-sm leading-relaxed text-stone-700">{f.reason}</p>
               )}
               <button
                 type="button"
                 onClick={() => onToggleIgnore(id)}
-                className="mt-2 rounded border border-slate-300 px-2 py-1 text-xs text-slate-600 hover:bg-slate-100"
+                className="mt-2.5 rounded-lg border border-line px-2.5 py-1 text-xs font-medium text-stone-500 hover:bg-stone-100"
               >
                 {isIgnored ? "무시 취소" : "이 지적 무시"}
               </button>
@@ -111,8 +112,8 @@ export function DetailPanel({
         // 남아 있고, 분석 결과 JSON에도 계속 저장된다.
         const visibility = getSuggestionFieldVisibility(s.validation);
         return (
-          <div key={s.questionIndex} className="space-y-2 border-t border-slate-100 pt-3">
-            <h3 className="text-sm font-semibold text-slate-600">개선안 (발문 [{s.questionIndex}])</h3>
+          <div key={s.questionIndex} className="space-y-2 border-t border-line pt-4">
+            <h3 className="flex items-center gap-1.5 text-sm font-bold text-chalk">✏️ 이렇게 바꿔 보세요 <span className="font-normal text-stone-400">발문 [{s.questionIndex}]</span></h3>
             {showQuestionFields && (
               <>
                 <FieldBlock label="개선 발문" value={s.revisedQuestionLine} ok={visibility.questionLine} />

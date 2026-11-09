@@ -1,0 +1,4 @@
+{
+  "enable_unlisted_hard_word": false,
+  "note": "목록에 없는 어려운 어휘를 LLM이 찾는 기능(unlisted_hard_word)을 쓸지 여부. CLAUDE.md 원칙(일반적인 어려운 단어가 아니라, 교육과정 진도상 아직 안 배운 용어가 기준)과 달리 이 기능은 단어 자체의 난이도를 판단하므로, 실제 수업 녹음에서 '피자'·'조각'·'크다'처럼 교육과정과 무관한 일반 어휘를 오탐하는 사례가 확인됐다. 그래서 기본값은 끔(false)으로 둔다. math-terms.json 목록과 대조하는 certain_unknown/maybe_unknown 판정은 이 설정과 무관하게 항상 동작한다."
+}
