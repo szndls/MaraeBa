@@ -1,13 +1,21 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { listAnalyses } from "../lib/analysisStore.server.js";
-import { readSavedNames } from "../lib/savedStore.server.js";
+import { listLessons, type LessonListEntry } from "../lib/lessonStore.client.js";
+import { loadSavedNames } from "../lib/savedNames.client.js";
 
-export const dynamic = "force-dynamic"; // 저장할 때마다 목록이 바로 바뀌도록 매번 새로 읽기
+// 기록: "저장하기"를 누른 수업 목록 (브라우저 IndexedDB + localStorage 기준)
+export default function HistoryPage() {
+  const [items, setItems] = useState<LessonListEntry[] | null>(null);
 
-// 기록: "저장하기"를 누른 수업 목록
-export default async function HistoryPage() {
-  const saved = new Set(await readSavedNames());
-  const items = (await listAnalyses()).filter((a) => saved.has(a.name));
+  useEffect(() => {
+    (async () => {
+      const saved = new Set(loadSavedNames());
+      const all = await listLessons();
+      setItems(all.filter((a) => saved.has(a.name)));
+    })();
+  }, []);
 
   return (
     <main className="mx-auto max-w-2xl px-4 pb-16 pt-8">
@@ -15,7 +23,9 @@ export default async function HistoryPage() {
         <h1 className="text-2xl font-bold">기록</h1>
         <Link href="/" className="text-sm text-stone-500 hover:text-chalk">← 홈으로</Link>
       </div>
-      {items.length === 0 ? (
+      {items === null ? (
+        <div className="card p-10 text-center text-stone-400">불러오는 중…</div>
+      ) : items.length === 0 ? (
         <div className="card p-10 text-center text-stone-400">아직 저장한 수업이 없어요.</div>
       ) : (
         <ul className="space-y-2.5">

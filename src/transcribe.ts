@@ -46,7 +46,13 @@ async function main() {
   console.log(`이어서 분석하려면: npm run analyze -- ${path.relative(process.cwd(), outputPath)}`);
 }
 
-main().catch((err) => {
-  console.error("음성 인식 중 오류가 발생했습니다:", err);
-  process.exit(1);
-});
+// `tsx src/transcribe.ts`로 직접 실행했을 때만 돈다 — 다른 모듈이 이 파일을 import해도
+// main()이 저절로 실행되면 안 된다(src/run.ts와 같은 이유).
+const isMainModule = process.argv[1] ? import.meta.url === `file://${path.resolve(process.argv[1])}` : false;
+
+if (isMainModule) {
+  main().catch((err) => {
+    console.error("음성 인식 중 오류가 발생했습니다:", err);
+    process.exit(1);
+  });
+}

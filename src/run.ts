@@ -20,6 +20,7 @@ import { recomputeReportFromAnalysis } from "./report/recomputeReportFromAnalysi
 import { computeFindingId } from "./report/findingId.js";
 import type { AnalysisResult } from "./types/analysis.js";
 import type { LessonReport } from "./types/report.js";
+import type { NormalizedTranscript } from "./types/transcript.js";
 
 loadEnv({ path: ".env.local" });
 
@@ -100,25 +101,19 @@ async function runFromCachedAnalysis(sourceFile: string, ignoredArg: string) {
   console.log(`\n중간 결과 저장 위치: ${intermediateDir()}`);
 }
 
-async function main() {
-  const sourceFile = process.argv[2] || "sample-transcript.json";
-  const ignoredArg = process.argv[3];
-
-  if (ignoredArg) {
-    await runFromCachedAnalysis(sourceFile, ignoredArg);
-    return;
-  }
-
-  const sourcePath = path.resolve(process.cwd(), sourceFile);
-
-  console.log(`[0단계] 학년 입력값 확인 + [1단계] 입력 정규화: ${sourceFile}`);
-  const transcript = await loadFromSyntheticJson(sourcePath);
+/**
+ * 2~6단계 분석을 전부 돌려서 AnalysisResult를 돌려준다 — 파일을 읽거나 쓰지 않는다
+ * (콘솔 로그만 남긴다). 터미널 CLI(main())와 Vercel 서버리스 라우트(app/api/analyze)가
+ * 이 함수 하나를 그대로 공유한다 — 서버리스 환경엔 쓰기 가능한 output/ 폴더가 없다.
+ */
+export async function analyzeTranscript(
+  transcript: NormalizedTranscript,
+  sourceFile: string
+): Promise<AnalysisResult> {
   console.log(`  → 학년: ${transcript.meta.grade}, 세그먼트 ${transcript.segments.length}개`);
-  await writeIntermediate("01-transcript.json", transcript);
 
   console.log("[2단계] 개념 추측 + 성취기준 연결 (LLM)");
   const conceptMatch = await matchConcept(transcript);
-  await writeIntermediate("02-concept-match.json", conceptMatch);
 
   console.log("\n=== 2단계 결과 ===");
   console.log(`학년군: ${conceptMatch.band} (${conceptMatch.grade}학년)`);
@@ -135,7 +130,6 @@ async function main() {
     ? await detectHardWords(transcript, transcript.meta.grade)
     : [];
   const vocabFindings: VocabFinding[] = [...knownTermFindings, ...hardWordFindings];
-  await writeIntermediate("03-vocab-findings.json", vocabFindings);
 
   console.log("\n=== 3단계 결과 ===");
   printVocabGroup(vocabFindings, "certain_unknown", "아직 모름 확정");
@@ -161,20 +155,6 @@ async function main() {
     ...q5Findings,
     ...q678Findings,
   ];
-
-  await writeIntermediate("04-questions.json", questions);
-  await writeIntermediate("04-questioning-findings.json", questioningFindings);
-  await writeIntermediate("04-wait-time-by-question.json", waitTimeEvaluations);
-
-  await writeStabilitySnapshot(sourceFile, {
-    runAt: new Date().toISOString(),
-    sourceFile,
-    concept: conceptMatch,
-    vocabFindings,
-    questions,
-    questioningFindings,
-    waitTimeEvaluations,
-  });
 
   console.log("\n=== 4단계 결과 ===");
   console.log("발문 유형 분류:");
@@ -207,9 +187,6 @@ async function main() {
     conceptMatch,
     waitTimeEvaluations
   );
-  await writeIntermediate("05-suggestions.json", suggestions);
-  await writeIntermediate("05-suggestion-stats.json", stats);
-
   console.log(`\n=== 5단계 결과 === (지적 있는 발문 ${suggestions.length}개 중 개선안 생성)`);
   for (const s of suggestions) {
     console.log(`\n[${s.questionIndex}] "${s.originalQuestionText}"`);
@@ -246,9 +223,7 @@ async function main() {
     console.log(`  - ${VALIDATION_CATEGORY_LABELS[key] ?? key}: ${count}건`);
   }
 
-  await writeStabilitySnapshot(sourceFile, { stage: "05-suggestions", runAt: new Date().toISOString(), sourceFile, suggestions, stats });
-
-  console.log("\n[6단계] 수업 전체 평가 리포트 (전체 계산 — 이 결과를 캐시에 저장합니다)");
+  console.log("\n[6단계] 수업 전체 평가 리포트");
   const report = await generateLessonReport({
     transcript,
     questions,
@@ -258,10 +233,8 @@ async function main() {
     responseEvents,
     probingResults,
   });
-  await writeIntermediate("06-report.json", report);
-  printReport(report);
 
-  const analysis: AnalysisResult = {
+  return {
     sourceFile,
     runAt: new Date().toISOString(),
     transcript,
@@ -276,6 +249,52 @@ async function main() {
     suggestionStats: stats,
     report,
   };
+}
+
+async function main() {
+  const sourceFile = process.argv[2] || "sample-transcript.json";
+  const ignoredArg = process.argv[3];
+
+  if (ignoredArg) {
+    await runFromCachedAnalysis(sourceFile, ignoredArg);
+    return;
+  }
+
+  const sourcePath = path.resolve(process.cwd(), sourceFile);
+
+  console.log(`[0단계] 학년 입력값 확인 + [1단계] 입력 정규화: ${sourceFile}`);
+  const transcript = await loadFromSyntheticJson(sourcePath);
+  await writeIntermediate("01-transcript.json", transcript);
+
+  const analysis = await analyzeTranscript(transcript, sourceFile);
+
+  await writeIntermediate("02-concept-match.json", analysis.conceptMatch);
+  await writeIntermediate("03-vocab-findings.json", analysis.vocabFindings);
+  await writeIntermediate("04-questions.json", analysis.questions);
+  await writeIntermediate("04-questioning-findings.json", analysis.questioningFindings);
+  await writeIntermediate("04-wait-time-by-question.json", analysis.waitTimeEvaluations);
+  await writeStabilitySnapshot(sourceFile, {
+    runAt: analysis.runAt,
+    sourceFile,
+    concept: analysis.conceptMatch,
+    vocabFindings: analysis.vocabFindings,
+    questions: analysis.questions,
+    questioningFindings: analysis.questioningFindings,
+    waitTimeEvaluations: analysis.waitTimeEvaluations,
+  });
+  await writeIntermediate("05-suggestions.json", analysis.suggestions);
+  await writeIntermediate("05-suggestion-stats.json", analysis.suggestionStats);
+  await writeStabilitySnapshot(sourceFile, {
+    stage: "05-suggestions",
+    runAt: analysis.runAt,
+    sourceFile,
+    suggestions: analysis.suggestions,
+    stats: analysis.suggestionStats,
+  });
+  await writeIntermediate("06-report.json", analysis.report);
+
+  printReport(analysis.report);
+
   await mkdir(outputDir(), { recursive: true });
   await writeFile(analysisPath(sourceFile), JSON.stringify(analysis, null, 2), "utf-8");
   console.log(`\n전체 분석 저장 위치: ${analysisPath(sourceFile)} (무시 목록 재계산은 이 파일을 읽어서 LLM 없이 처리합니다)`);
@@ -305,7 +324,13 @@ function printQuestioningGroup(findings: QuestioningFinding[], criterionId: stri
   }
 }
 
-main().catch((err) => {
-  console.error("분석 중 오류가 발생했습니다:", err);
-  process.exit(1);
-});
+// 이 파일을 다른 모듈(app/api/analyze/route.ts)이 analyzeTranscript()만 가져다 쓸 때는
+// main()이 실행되면 안 된다 — `tsx src/run.ts`로 직접 실행했을 때만 돈다.
+const isMainModule = process.argv[1] ? import.meta.url === `file://${path.resolve(process.argv[1])}` : false;
+
+if (isMainModule) {
+  main().catch((err) => {
+    console.error("분석 중 오류가 발생했습니다:", err);
+    process.exit(1);
+  });
+}

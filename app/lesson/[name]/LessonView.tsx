@@ -8,6 +8,7 @@ import { computeFindingId } from "../../../src/report/findingId.js";
 import { computeSegmentHighlights } from "../../lib/computeHighlights.js";
 import { HIGHLIGHT_GROUPS, groupForCriterion, type HighlightGroupKey } from "../../lib/highlightConfig.js";
 import { loadIgnoredIds, saveIgnoredIds } from "../../lib/localIgnoreStore.js";
+import { addSavedName } from "../../lib/savedNames.client.js";
 import { Legend } from "./Legend.js";
 import { TranscriptPane } from "./TranscriptPane.js";
 import { DetailPanel } from "./DetailPanel.js";
@@ -31,11 +32,11 @@ export function LessonView({
   // 저장하기: 누르면 기록 목록에 들어간다
   const [isSaved, setIsSaved] = useState(initiallySaved);
   const [isSaving, setIsSaving] = useState(false);
-  async function save() {
+  function save() {
     setIsSaving(true);
     try {
-      const res = await fetch("/api/saved", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name }) });
-      if (res.ok) setIsSaved(true);
+      addSavedName(name);
+      setIsSaved(true);
     } finally {
       setIsSaving(false);
     }
@@ -54,7 +55,7 @@ export function LessonView({
       const res = await fetch(`/api/lessons/${name}/report`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ignoredFindingIds: ids, regenerateSummary }),
+        body: JSON.stringify({ analysis, ignoredFindingIds: ids, regenerateSummary }),
       });
       if (res.ok) {
         const next = (await res.json()) as LessonReport;

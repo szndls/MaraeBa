@@ -1,0 +1,1838 @@
+{
+  "sourceFile": "sample-transcript.json",
+  "runAt": "2026-11-11T03:41:13.629Z",
+  "transcript": {
+    "meta": {
+      "title": "테스트용 가상 수업 전사본",
+      "grade": 3,
+      "source": "synthetic",
+      "time_unit": "seconds"
+    },
+    "segments": [
+      {
+        "speaker": "teacher",
+        "start": 0,
+        "end": 4.2,
+        "text": "여러분, 피자 한 판을 똑같이 네 조각으로 나눴어요. 그중에 한 조각은 전체의 얼마일까요?",
+        "index": 0
+      },
+      {
+        "speaker": "student",
+        "start": 4.8,
+        "end": 6,
+        "text": "4분의 1이요.",
+        "index": 1
+      },
+      {
+        "speaker": "teacher",
+        "start": 6.2,
+        "end": 7.5,
+        "text": "맞아요. 잘했어요.",
+        "index": 2
+      },
+      {
+        "speaker": "teacher",
+        "start": 8,
+        "end": 14.5,
+        "text": "그럼 이번엔 여덟 조각으로 나누면 한 조각은 얼마예요? 그리고 네 조각일 때랑 비교하면 어때요? 누가 더 커요?",
+        "index": 3
+      },
+      {
+        "speaker": "student",
+        "start": 15,
+        "end": 16.2,
+        "text": "8분의 1이요.",
+        "index": 4
+      },
+      {
+        "speaker": "teacher",
+        "start": 16.5,
+        "end": 19,
+        "text": "네, 8분의 1. 그럼 4분의 1이랑 8분의 1 중에 뭐가 더 클까요?",
+        "index": 5
+      },
+      {
+        "speaker": "student",
+        "start": 19.6,
+        "end": 20.8,
+        "text": "8분의 1이요!",
+        "index": 6
+      },
+      {
+        "speaker": "teacher",
+        "start": 21,
+        "end": 23.5,
+        "text": "음, 왜 그렇게 생각했어요?",
+        "index": 7
+      },
+      {
+        "speaker": "student",
+        "start": 27,
+        "end": 31,
+        "text": "8이 4보다 더 크니까요.",
+        "index": 8
+      },
+      {
+        "speaker": "teacher",
+        "start": 31.5,
+        "end": 36,
+        "text": "아, 8이 4보다 크니까 8분의 1이 더 크다고 생각했구나.",
+        "index": 9
+      },
+      {
+        "speaker": "teacher",
+        "start": 36.3,
+        "end": 39,
+        "text": "다른 친구들은 어떻게 생각해요? 동의해요?",
+        "index": 10
+      },
+      {
+        "speaker": "student",
+        "start": 44.5,
+        "end": 50,
+        "text": "아니요. 여덟 조각으로 나누면 한 조각이 더 작아져요.",
+        "index": 11
+      },
+      {
+        "speaker": "teacher",
+        "start": 50.5,
+        "end": 54,
+        "text": "오, 조각이 더 작아진다. 조금 더 설명해 줄래요?",
+        "index": 12
+      },
+      {
+        "speaker": "student",
+        "start": 54.5,
+        "end": 62,
+        "text": "같은 피자를 더 많이 나누면 한 조각은 작아지니까 4분의 1이 더 커요.",
+        "index": 13
+      },
+      {
+        "speaker": "teacher",
+        "start": 62.5,
+        "end": 66,
+        "text": "좋아요. 끝까지 이유를 찾아서 설명했네요.",
+        "index": 14
+      },
+      {
+        "speaker": "teacher",
+        "start": 66.5,
+        "end": 74,
+        "text": "분모가 클수록 단위분수의 크기는 작아지는 거예요. 이걸 단위분수의 대소 관계라고 해요.",
+        "index": 15
+      },
+      {
+        "speaker": "teacher",
+        "start": 74.5,
+        "end": 86,
+        "text": "자, 이제 모둠별로 색종이 받고, 반으로 접고, 또 반으로 접은 다음에, 한 칸 색칠하고, 다 하면 옆 모둠이랑 비교해서 손 드세요.",
+        "index": 16
+      },
+      {
+        "speaker": "teacher",
+        "start": 120,
+        "end": 124,
+        "text": "3분의 1이랑 5분의 1 중에 뭐가 커요?",
+        "index": 17
+      },
+      {
+        "speaker": "teacher",
+        "start": 124.4,
+        "end": 125.2,
+        "text": "3분의 1이죠?",
+        "index": 18
+      },
+      {
+        "speaker": "student",
+        "start": 126,
+        "end": 127,
+        "text": "네.",
+        "index": 19
+      },
+      {
+        "speaker": "teacher",
+        "start": 127.5,
+        "end": 133,
+        "text": "그럼 10분의 1이랑 100분의 1이 있으면, 어떻게 비교할 수 있을지 자기 방법으로 설명해 볼 사람?",
+        "index": 20
+      },
+      {
+        "speaker": "student",
+        "start": 138.5,
+        "end": 146,
+        "text": "100개로 나누면 엄청 작으니까 10분의 1이 더 커요.",
+        "index": 21
+      },
+      {
+        "speaker": "teacher",
+        "start": 146.5,
+        "end": 149,
+        "text": "정답!",
+        "index": 22
+      },
+      {
+        "speaker": "teacher",
+        "start": 149.5,
+        "end": 156,
+        "text": "오늘 배운 걸 짝한테 자기 말로 설명해 보세요.",
+        "index": 23
+      }
+    ]
+  },
+  "conceptMatch": {
+    "grade": 3,
+    "band": "3-4",
+    "areaName": "수와 연산",
+    "standardCode": "4수01-11",
+    "standardSummary": "분모가 같은 분수끼리, 단위분수끼리 크기 비교",
+    "rationale": "현재 수업에서는 단위분수의 크기를 비교하는 개념과 관련하여 학생들에게 단위분수를 나누고 비교하도록 요구하고 있습니다. 특히 '분모가 같은 분수의 크기 비교'에 중점을 두고 있습니다.",
+    "evidenceSegments": [
+      {
+        "speaker": "teacher",
+        "start": 0,
+        "end": 4.2,
+        "text": "여러분, 피자 한 판을 똑같이 네 조각으로 나눴어요. 그중에 한 조각은 전체의 얼마일까요?",
+        "index": 0
+      },
+      {
+        "speaker": "teacher",
+        "start": 8,
+        "end": 14.5,
+        "text": "그럼 이번엔 여덟 조각으로 나누면 한 조각은 얼마예요? 그리고 네 조각일 때랑 비교하면 어때요? 누가 더 커요?",
+        "index": 3
+      },
+      {
+        "speaker": "teacher",
+        "start": 16.5,
+        "end": 19,
+        "text": "네, 8분의 1. 그럼 4분의 1이랑 8분의 1 중에 뭐가 더 클까요?",
+        "index": 5
+      },
+      {
+        "speaker": "teacher",
+        "start": 66.5,
+        "end": 74,
+        "text": "분모가 클수록 단위분수의 크기는 작아지는 거예요. 이걸 단위분수의 대소 관계라고 해요.",
+        "index": 15
+      },
+      {
+        "speaker": "teacher",
+        "start": 120,
+        "end": 124,
+        "text": "3분의 1이랑 5분의 1 중에 뭐가 커요?",
+        "index": 17
+      },
+      {
+        "speaker": "teacher",
+        "start": 127.5,
+        "end": 133,
+        "text": "그럼 10분의 1이랑 100분의 1이 있으면, 어떻게 비교할 수 있을지 자기 방법으로 설명해 볼 사람?",
+        "index": 20
+      }
+    ],
+    "source": "ai"
+  },
+  "vocabFindings": [],
+  "questions": [
+    {
+      "segment": {
+        "speaker": "teacher",
+        "start": 0,
+        "end": 4.2,
+        "text": "여러분, 피자 한 판을 똑같이 네 조각으로 나눴어요. 그중에 한 조각은 전체의 얼마일까요?",
+        "index": 0
+      },
+      "questionType": "수렴적",
+      "questionMarkCount": 1
+    },
+    {
+      "segment": {
+        "speaker": "teacher",
+        "start": 8,
+        "end": 14.5,
+        "text": "그럼 이번엔 여덟 조각으로 나누면 한 조각은 얼마예요? 그리고 네 조각일 때랑 비교하면 어때요? 누가 더 커요?",
+        "index": 3
+      },
+      "questionType": "수렴적",
+      "questionMarkCount": 1
+    },
+    {
+      "segment": {
+        "speaker": "teacher",
+        "start": 8,
+        "end": 14.5,
+        "text": "그럼 이번엔 여덟 조각으로 나누면 한 조각은 얼마예요? 그리고 네 조각일 때랑 비교하면 어때요? 누가 더 커요?",
+        "index": 3
+      },
+      "questionType": "수렴적",
+      "questionMarkCount": 1
+    },
+    {
+      "segment": {
+        "speaker": "teacher",
+        "start": 8,
+        "end": 14.5,
+        "text": "그럼 이번엔 여덟 조각으로 나누면 한 조각은 얼마예요? 그리고 네 조각일 때랑 비교하면 어때요? 누가 더 커요?",
+        "index": 3
+      },
+      "questionType": "수렴적",
+      "questionMarkCount": 1
+    },
+    {
+      "segment": {
+        "speaker": "teacher",
+        "start": 16.5,
+        "end": 19,
+        "text": "네, 8분의 1. 그럼 4분의 1이랑 8분의 1 중에 뭐가 더 클까요?",
+        "index": 5
+      },
+      "questionType": "수렴적",
+      "questionMarkCount": 1
+    },
+    {
+      "segment": {
+        "speaker": "teacher",
+        "start": 21,
+        "end": 23.5,
+        "text": "음, 왜 그렇게 생각했어요?",
+        "index": 7
+      },
+      "questionType": "확산적",
+      "questionMarkCount": 1
+    },
+    {
+      "segment": {
+        "speaker": "teacher",
+        "start": 36.3,
+        "end": 39,
+        "text": "다른 친구들은 어떻게 생각해요? 동의해요?",
+        "index": 10
+      },
+      "questionType": "확산적",
+      "questionMarkCount": 1
+    },
+    {
+      "segment": {
+        "speaker": "teacher",
+        "start": 36.3,
+        "end": 39,
+        "text": "다른 친구들은 어떻게 생각해요? 동의해요?",
+        "index": 10
+      },
+      "questionType": "확산적",
+      "questionMarkCount": 1
+    },
+    {
+      "segment": {
+        "speaker": "teacher",
+        "start": 50.5,
+        "end": 54,
+        "text": "오, 조각이 더 작아진다. 조금 더 설명해 줄래요?",
+        "index": 12
+      },
+      "questionType": "확산적",
+      "questionMarkCount": 1
+    },
+    {
+      "segment": {
+        "speaker": "teacher",
+        "start": 120,
+        "end": 124,
+        "text": "3분의 1이랑 5분의 1 중에 뭐가 커요?",
+        "index": 17
+      },
+      "questionType": "수렴적",
+      "questionMarkCount": 1
+    },
+    {
+      "segment": {
+        "speaker": "teacher",
+        "start": 124.4,
+        "end": 125.2,
+        "text": "3분의 1이죠?",
+        "index": 18
+      },
+      "questionType": "인지·기억",
+      "questionMarkCount": 1
+    },
+    {
+      "segment": {
+        "speaker": "teacher",
+        "start": 127.5,
+        "end": 133,
+        "text": "그럼 10분의 1이랑 100분의 1이 있으면, 어떻게 비교할 수 있을지 자기 방법으로 설명해 볼 사람?",
+        "index": 20
+      },
+      "questionType": "확산적",
+      "questionMarkCount": 1
+    }
+  ],
+  "questioningFindings": [
+    {
+      "criterionId": "Q1",
+      "criterionName": "겹질문",
+      "severity": "문제",
+      "segments": [
+        {
+          "speaker": "teacher",
+          "start": 8,
+          "end": 14.5,
+          "text": "그럼 이번엔 여덟 조각으로 나누면 한 조각은 얼마예요? 그리고 네 조각일 때랑 비교하면 어때요? 누가 더 커요?",
+          "index": 3
+        }
+      ],
+      "reason": "\"그럼 이번엔 여덟 조각으로 나누면 한 조각은 얼마예요? 그리고 네 조각일 때랑 비교하면 어때요? 누가 더 커요?\"처럼 한 번에 서로 다른 질문을 여러 개 던져서, 학생이 어느 질문에 먼저 답해야 할지 헷갈릴 수 있어요.",
+      "devReason": "여덟 조각과 네 조각에 대한 두 개의 질문이 포함되어 있다.",
+      "detect": "llm",
+      "targetQuestionIndex": 3
+    },
+    {
+      "criterionId": "Q4",
+      "criterionName": "유도 발문",
+      "severity": "개선 권장",
+      "segments": [
+        {
+          "speaker": "teacher",
+          "start": 124.4,
+          "end": 125.2,
+          "text": "3분의 1이죠?",
+          "index": 18
+        }
+      ],
+      "reason": "\"3분의 1이죠?\"는 정답을 이미 알려주면서 예·아니오로만 확인하는 질문이라, 학생이 스스로 생각할 필요가 없었어요.",
+      "devReason": "정답(3분의 1)을 이미 말했습니다. / 학생에게 '네'만 요구하는 질문입니다. / 확인형 어미로 끝납니다.",
+      "detect": "llm",
+      "targetQuestionIndex": 18
+    },
+    {
+      "criterionId": "Q3",
+      "criterionName": "자문자답",
+      "severity": "문제",
+      "segments": [
+        {
+          "speaker": "teacher",
+          "start": 120,
+          "end": 124,
+          "text": "3분의 1이랑 5분의 1 중에 뭐가 커요?",
+          "index": 17
+        },
+        {
+          "speaker": "teacher",
+          "start": 124.4,
+          "end": 125.2,
+          "text": "3분의 1이죠?",
+          "index": 18
+        }
+      ],
+      "reason": "\"3분의 1이랑 5분의 1 중에 뭐가 커요?\"라고 묻고, 학생이 답하기 전에 교사가 스스로 \"3분의 1이죠?\"라고 답해서 학생이 생각할 기회를 갖지 못했어요.",
+      "devReason": "(간격 0.4초) 교사가 질문에 대한 답을 스스로 제공하고 있다.",
+      "detect": "code+llm",
+      "targetQuestionIndex": 17
+    },
+    {
+      "criterionId": "Q5",
+      "criterionName": "대기 시간 부족 (발문 후)",
+      "severity": "문제",
+      "segments": [
+        {
+          "speaker": "teacher",
+          "start": 0,
+          "end": 4.2,
+          "text": "여러분, 피자 한 판을 똑같이 네 조각으로 나눴어요. 그중에 한 조각은 전체의 얼마일까요?",
+          "index": 0
+        },
+        {
+          "speaker": "student",
+          "start": 4.8,
+          "end": 6,
+          "text": "4분의 1이요.",
+          "index": 1
+        }
+      ],
+      "reason": "발문 후 0.6초 만에 다음 발화가 시작돼서, \"수렴적\" 발문에 필요한 생각할 시간이 부족했어요.",
+      "devReason": "대기 시간 0.6초, 발문 유형 \"수렴적\" — 해당 조건: 대기시간 1초 미만(wait_time_1 < 1.0초)",
+      "detect": "code",
+      "targetQuestionIndex": 0
+    },
+    {
+      "criterionId": "Q5",
+      "criterionName": "대기 시간 부족 (발문 후)",
+      "severity": "문제",
+      "segments": [
+        {
+          "speaker": "teacher",
+          "start": 8,
+          "end": 14.5,
+          "text": "그럼 이번엔 여덟 조각으로 나누면 한 조각은 얼마예요? 그리고 네 조각일 때랑 비교하면 어때요? 누가 더 커요?",
+          "index": 3
+        },
+        {
+          "speaker": "student",
+          "start": 15,
+          "end": 16.2,
+          "text": "8분의 1이요.",
+          "index": 4
+        }
+      ],
+      "reason": "발문 후 0.5초 만에 다음 발화가 시작돼서, \"수렴적\" 발문에 필요한 생각할 시간이 부족했어요.",
+      "devReason": "대기 시간 0.5초, 발문 유형 \"수렴적\" — 해당 조건: 대기시간 1초 미만(wait_time_1 < 1.0초)",
+      "detect": "code",
+      "targetQuestionIndex": 3
+    },
+    {
+      "criterionId": "Q5",
+      "criterionName": "대기 시간 부족 (발문 후)",
+      "severity": "문제",
+      "segments": [
+        {
+          "speaker": "teacher",
+          "start": 16.5,
+          "end": 19,
+          "text": "네, 8분의 1. 그럼 4분의 1이랑 8분의 1 중에 뭐가 더 클까요?",
+          "index": 5
+        },
+        {
+          "speaker": "student",
+          "start": 19.6,
+          "end": 20.8,
+          "text": "8분의 1이요!",
+          "index": 6
+        }
+      ],
+      "reason": "발문 후 0.6초 만에 다음 발화가 시작돼서, \"수렴적\" 발문에 필요한 생각할 시간이 부족했어요.",
+      "devReason": "대기 시간 0.6초, 발문 유형 \"수렴적\" — 해당 조건: 대기시간 1초 미만(wait_time_1 < 1.0초)",
+      "detect": "code",
+      "targetQuestionIndex": 5
+    },
+    {
+      "criterionId": "Q5",
+      "criterionName": "대기 시간 부족 (발문 후)",
+      "severity": "개선 권장",
+      "segments": [
+        {
+          "speaker": "teacher",
+          "start": 21,
+          "end": 23.5,
+          "text": "음, 왜 그렇게 생각했어요?",
+          "index": 7
+        },
+        {
+          "speaker": "student",
+          "start": 27,
+          "end": 31,
+          "text": "8이 4보다 더 크니까요.",
+          "index": 8
+        }
+      ],
+      "reason": "발문 후 3.5초 만에 다음 발화가 시작돼서, \"확산적\" 발문에 필요한 생각할 시간이 부족했어요.",
+      "devReason": "대기 시간 3.5초, 발문 유형 \"확산적\" — 해당 조건: 고차원 발문 대기 부족(발문 유형이 확산적·평가적인데 wait_time_1 < 5.0초)",
+      "detect": "code",
+      "targetQuestionIndex": 7
+    },
+    {
+      "criterionId": "Q5",
+      "criterionName": "대기 시간 부족 (발문 후)",
+      "severity": "문제",
+      "segments": [
+        {
+          "speaker": "teacher",
+          "start": 50.5,
+          "end": 54,
+          "text": "오, 조각이 더 작아진다. 조금 더 설명해 줄래요?",
+          "index": 12
+        },
+        {
+          "speaker": "student",
+          "start": 54.5,
+          "end": 62,
+          "text": "같은 피자를 더 많이 나누면 한 조각은 작아지니까 4분의 1이 더 커요.",
+          "index": 13
+        }
+      ],
+      "reason": "발문 후 0.5초 만에 다음 발화가 시작돼서, \"확산적\" 발문에 필요한 생각할 시간이 부족했어요.",
+      "devReason": "대기 시간 0.5초, 발문 유형 \"확산적\" — 해당 조건: 대기시간 1초 미만(wait_time_1 < 1.0초); 고차원 발문 대기 부족(발문 유형이 확산적·평가적인데 wait_time_1 < 5.0초)",
+      "detect": "code",
+      "targetQuestionIndex": 12
+    },
+    {
+      "criterionId": "Q5",
+      "criterionName": "대기 시간 부족 (발문 후)",
+      "severity": "문제",
+      "segments": [
+        {
+          "speaker": "teacher",
+          "start": 124.4,
+          "end": 125.2,
+          "text": "3분의 1이죠?",
+          "index": 18
+        },
+        {
+          "speaker": "student",
+          "start": 126,
+          "end": 127,
+          "text": "네.",
+          "index": 19
+        }
+      ],
+      "reason": "발문 후 0.8초 만에 다음 발화가 시작돼서, \"인지·기억\" 발문에 필요한 생각할 시간이 부족했어요.",
+      "devReason": "대기 시간 0.8초, 발문 유형 \"인지·기억\" — 해당 조건: 대기시간 1초 미만(wait_time_1 < 1.0초)",
+      "detect": "code",
+      "targetQuestionIndex": 18
+    },
+    {
+      "criterionId": "Q6",
+      "criterionName": "평가로 닫기",
+      "severity": "개선 권장",
+      "segments": [
+        {
+          "speaker": "teacher",
+          "start": 0,
+          "end": 4.2,
+          "text": "여러분, 피자 한 판을 똑같이 네 조각으로 나눴어요. 그중에 한 조각은 전체의 얼마일까요?",
+          "index": 0
+        },
+        {
+          "speaker": "student",
+          "start": 4.8,
+          "end": 6,
+          "text": "4분의 1이요.",
+          "index": 1
+        },
+        {
+          "speaker": "teacher",
+          "start": 6.2,
+          "end": 7.5,
+          "text": "맞아요. 잘했어요.",
+          "index": 2
+        }
+      ],
+      "reason": "\"맞아요.\"로 평가만 하고, 이유를 묻거나 다른 친구와 연결하지 않은 채 다음으로 넘어갔어요.",
+      "devReason": "응답 구간에 '맞아요'라는 평가 표현이 있다. / 응답 구간에 학생의 답변에 대한 이유를 묻는 캐묻기가 없다. / 다음 질문이 학생의 답변에 대한 이유를 묻지 않고 새로운 사실을 제시하고 있다.",
+      "detect": "llm",
+      "targetQuestionIndex": 0,
+      "targetReactionSegmentIndex": 2
+    },
+    {
+      "criterionId": "Q8",
+      "criterionName": "막연한 칭찬",
+      "severity": "개선 권장",
+      "segments": [
+        {
+          "speaker": "teacher",
+          "start": 0,
+          "end": 4.2,
+          "text": "여러분, 피자 한 판을 똑같이 네 조각으로 나눴어요. 그중에 한 조각은 전체의 얼마일까요?",
+          "index": 0
+        },
+        {
+          "speaker": "student",
+          "start": 4.8,
+          "end": 6,
+          "text": "4분의 1이요.",
+          "index": 1
+        },
+        {
+          "speaker": "teacher",
+          "start": 6.2,
+          "end": 7.5,
+          "text": "맞아요. 잘했어요.",
+          "index": 2
+        }
+      ],
+      "reason": "\"맞아요.\"처럼 무엇이 좋았는지 말하지 않고 막연하게 칭찬했어요.",
+      "devReason": "응답 구간에 '잘했어요'라는 칭찬 표현이 있다. / '잘했어요'라는 표현만 있어 구체적인 설명이 없다.",
+      "detect": "llm",
+      "targetQuestionIndex": 0,
+      "targetReactionSegmentIndex": 2
+    }
+  ],
+  "waitTimeEvaluations": [
+    {
+      "question": {
+        "segment": {
+          "speaker": "teacher",
+          "start": 0,
+          "end": 4.2,
+          "text": "여러분, 피자 한 판을 똑같이 네 조각으로 나눴어요. 그중에 한 조각은 전체의 얼마일까요?",
+          "index": 0
+        },
+        "questionType": "수렴적",
+        "questionMarkCount": 1
+      },
+      "nextSegment": {
+        "speaker": "student",
+        "start": 4.8,
+        "end": 6,
+        "text": "4분의 1이요.",
+        "index": 1
+      },
+      "waitTimeSec": 0.5999999999999996,
+      "skippedReason": null,
+      "matchedConditions": [
+        {
+          "condition": "대기시간 1초 미만",
+          "severity": "문제",
+          "description": "wait_time_1 < 1.0초",
+          "numbers": [
+            1
+          ],
+          "mentionedTypes": []
+        }
+      ],
+      "severity": "문제"
+    },
+    {
+      "question": {
+        "segment": {
+          "speaker": "teacher",
+          "start": 8,
+          "end": 14.5,
+          "text": "그럼 이번엔 여덟 조각으로 나누면 한 조각은 얼마예요? 그리고 네 조각일 때랑 비교하면 어때요? 누가 더 커요?",
+          "index": 3
+        },
+        "questionType": "수렴적",
+        "questionMarkCount": 1
+      },
+      "nextSegment": null,
+      "waitTimeSec": null,
+      "skippedReason": "같은 턴 안에서 이어 말한 질문 — 턴의 마지막 질문에만 대기 시간을 계산함",
+      "matchedConditions": [],
+      "severity": null
+    },
+    {
+      "question": {
+        "segment": {
+          "speaker": "teacher",
+          "start": 8,
+          "end": 14.5,
+          "text": "그럼 이번엔 여덟 조각으로 나누면 한 조각은 얼마예요? 그리고 네 조각일 때랑 비교하면 어때요? 누가 더 커요?",
+          "index": 3
+        },
+        "questionType": "수렴적",
+        "questionMarkCount": 1
+      },
+      "nextSegment": null,
+      "waitTimeSec": null,
+      "skippedReason": "같은 턴 안에서 이어 말한 질문 — 턴의 마지막 질문에만 대기 시간을 계산함",
+      "matchedConditions": [],
+      "severity": null
+    },
+    {
+      "question": {
+        "segment": {
+          "speaker": "teacher",
+          "start": 8,
+          "end": 14.5,
+          "text": "그럼 이번엔 여덟 조각으로 나누면 한 조각은 얼마예요? 그리고 네 조각일 때랑 비교하면 어때요? 누가 더 커요?",
+          "index": 3
+        },
+        "questionType": "수렴적",
+        "questionMarkCount": 1
+      },
+      "nextSegment": {
+        "speaker": "student",
+        "start": 15,
+        "end": 16.2,
+        "text": "8분의 1이요.",
+        "index": 4
+      },
+      "waitTimeSec": 0.5,
+      "skippedReason": null,
+      "matchedConditions": [
+        {
+          "condition": "대기시간 1초 미만",
+          "severity": "문제",
+          "description": "wait_time_1 < 1.0초",
+          "numbers": [
+            1
+          ],
+          "mentionedTypes": []
+        }
+      ],
+      "severity": "문제"
+    },
+    {
+      "question": {
+        "segment": {
+          "speaker": "teacher",
+          "start": 16.5,
+          "end": 19,
+          "text": "네, 8분의 1. 그럼 4분의 1이랑 8분의 1 중에 뭐가 더 클까요?",
+          "index": 5
+        },
+        "questionType": "수렴적",
+        "questionMarkCount": 1
+      },
+      "nextSegment": {
+        "speaker": "student",
+        "start": 19.6,
+        "end": 20.8,
+        "text": "8분의 1이요!",
+        "index": 6
+      },
+      "waitTimeSec": 0.6000000000000014,
+      "skippedReason": null,
+      "matchedConditions": [
+        {
+          "condition": "대기시간 1초 미만",
+          "severity": "문제",
+          "description": "wait_time_1 < 1.0초",
+          "numbers": [
+            1
+          ],
+          "mentionedTypes": []
+        }
+      ],
+      "severity": "문제"
+    },
+    {
+      "question": {
+        "segment": {
+          "speaker": "teacher",
+          "start": 21,
+          "end": 23.5,
+          "text": "음, 왜 그렇게 생각했어요?",
+          "index": 7
+        },
+        "questionType": "확산적",
+        "questionMarkCount": 1
+      },
+      "nextSegment": {
+        "speaker": "student",
+        "start": 27,
+        "end": 31,
+        "text": "8이 4보다 더 크니까요.",
+        "index": 8
+      },
+      "waitTimeSec": 3.5,
+      "skippedReason": null,
+      "matchedConditions": [
+        {
+          "condition": "고차원 발문 대기 부족",
+          "severity": "개선 권장",
+          "description": "발문 유형이 확산적·평가적인데 wait_time_1 < 5.0초",
+          "numbers": [
+            5
+          ],
+          "mentionedTypes": [
+            "확산적",
+            "평가적"
+          ]
+        }
+      ],
+      "severity": "개선 권장"
+    },
+    {
+      "question": {
+        "segment": {
+          "speaker": "teacher",
+          "start": 36.3,
+          "end": 39,
+          "text": "다른 친구들은 어떻게 생각해요? 동의해요?",
+          "index": 10
+        },
+        "questionType": "확산적",
+        "questionMarkCount": 1
+      },
+      "nextSegment": null,
+      "waitTimeSec": null,
+      "skippedReason": "같은 턴 안에서 이어 말한 질문 — 턴의 마지막 질문에만 대기 시간을 계산함",
+      "matchedConditions": [],
+      "severity": null
+    },
+    {
+      "question": {
+        "segment": {
+          "speaker": "teacher",
+          "start": 36.3,
+          "end": 39,
+          "text": "다른 친구들은 어떻게 생각해요? 동의해요?",
+          "index": 10
+        },
+        "questionType": "확산적",
+        "questionMarkCount": 1
+      },
+      "nextSegment": {
+        "speaker": "student",
+        "start": 44.5,
+        "end": 50,
+        "text": "아니요. 여덟 조각으로 나누면 한 조각이 더 작아져요.",
+        "index": 11
+      },
+      "waitTimeSec": 5.5,
+      "skippedReason": null,
+      "matchedConditions": [],
+      "severity": null
+    },
+    {
+      "question": {
+        "segment": {
+          "speaker": "teacher",
+          "start": 50.5,
+          "end": 54,
+          "text": "오, 조각이 더 작아진다. 조금 더 설명해 줄래요?",
+          "index": 12
+        },
+        "questionType": "확산적",
+        "questionMarkCount": 1
+      },
+      "nextSegment": {
+        "speaker": "student",
+        "start": 54.5,
+        "end": 62,
+        "text": "같은 피자를 더 많이 나누면 한 조각은 작아지니까 4분의 1이 더 커요.",
+        "index": 13
+      },
+      "waitTimeSec": 0.5,
+      "skippedReason": null,
+      "matchedConditions": [
+        {
+          "condition": "대기시간 1초 미만",
+          "severity": "문제",
+          "description": "wait_time_1 < 1.0초",
+          "numbers": [
+            1
+          ],
+          "mentionedTypes": []
+        },
+        {
+          "condition": "고차원 발문 대기 부족",
+          "severity": "개선 권장",
+          "description": "발문 유형이 확산적·평가적인데 wait_time_1 < 5.0초",
+          "numbers": [
+            5
+          ],
+          "mentionedTypes": [
+            "확산적",
+            "평가적"
+          ]
+        }
+      ],
+      "severity": "문제"
+    },
+    {
+      "question": {
+        "segment": {
+          "speaker": "teacher",
+          "start": 120,
+          "end": 124,
+          "text": "3분의 1이랑 5분의 1 중에 뭐가 커요?",
+          "index": 17
+        },
+        "questionType": "수렴적",
+        "questionMarkCount": 1
+      },
+      "nextSegment": {
+        "speaker": "teacher",
+        "start": 124.4,
+        "end": 125.2,
+        "text": "3분의 1이죠?",
+        "index": 18
+      },
+      "waitTimeSec": null,
+      "skippedReason": "다음 발화가 교사 — Q3(자문자답)에서만 다룸",
+      "matchedConditions": [],
+      "severity": null
+    },
+    {
+      "question": {
+        "segment": {
+          "speaker": "teacher",
+          "start": 124.4,
+          "end": 125.2,
+          "text": "3분의 1이죠?",
+          "index": 18
+        },
+        "questionType": "인지·기억",
+        "questionMarkCount": 1
+      },
+      "nextSegment": {
+        "speaker": "student",
+        "start": 126,
+        "end": 127,
+        "text": "네.",
+        "index": 19
+      },
+      "waitTimeSec": 0.7999999999999972,
+      "skippedReason": null,
+      "matchedConditions": [
+        {
+          "condition": "대기시간 1초 미만",
+          "severity": "문제",
+          "description": "wait_time_1 < 1.0초",
+          "numbers": [
+            1
+          ],
+          "mentionedTypes": []
+        }
+      ],
+      "severity": "문제"
+    },
+    {
+      "question": {
+        "segment": {
+          "speaker": "teacher",
+          "start": 127.5,
+          "end": 133,
+          "text": "그럼 10분의 1이랑 100분의 1이 있으면, 어떻게 비교할 수 있을지 자기 방법으로 설명해 볼 사람?",
+          "index": 20
+        },
+        "questionType": "확산적",
+        "questionMarkCount": 1
+      },
+      "nextSegment": {
+        "speaker": "student",
+        "start": 138.5,
+        "end": 146,
+        "text": "100개로 나누면 엄청 작으니까 10분의 1이 더 커요.",
+        "index": 21
+      },
+      "waitTimeSec": 5.5,
+      "skippedReason": null,
+      "matchedConditions": [],
+      "severity": null
+    }
+  ],
+  "responseEvents": [
+    {
+      "precedingQuestionSegment": {
+        "speaker": "teacher",
+        "start": 0,
+        "end": 4.2,
+        "text": "여러분, 피자 한 판을 똑같이 네 조각으로 나눴어요. 그중에 한 조각은 전체의 얼마일까요?",
+        "index": 0
+      },
+      "studentSegment": {
+        "speaker": "student",
+        "start": 4.8,
+        "end": 6,
+        "text": "4분의 1이요.",
+        "index": 1
+      },
+      "responseWindowSegments": [
+        {
+          "speaker": "teacher",
+          "start": 6.2,
+          "end": 7.5,
+          "text": "맞아요. 잘했어요.",
+          "index": 2
+        }
+      ],
+      "nextQuestionSegment": {
+        "speaker": "teacher",
+        "start": 8,
+        "end": 14.5,
+        "text": "그럼 이번엔 여덟 조각으로 나누면 한 조각은 얼마예요? 그리고 네 조각일 때랑 비교하면 어때요? 누가 더 커요?",
+        "index": 3
+      }
+    },
+    {
+      "precedingQuestionSegment": {
+        "speaker": "teacher",
+        "start": 8,
+        "end": 14.5,
+        "text": "그럼 이번엔 여덟 조각으로 나누면 한 조각은 얼마예요? 그리고 네 조각일 때랑 비교하면 어때요? 누가 더 커요?",
+        "index": 3
+      },
+      "studentSegment": {
+        "speaker": "student",
+        "start": 15,
+        "end": 16.2,
+        "text": "8분의 1이요.",
+        "index": 4
+      },
+      "responseWindowSegments": [],
+      "nextQuestionSegment": {
+        "speaker": "teacher",
+        "start": 16.5,
+        "end": 19,
+        "text": "네, 8분의 1. 그럼 4분의 1이랑 8분의 1 중에 뭐가 더 클까요?",
+        "index": 5
+      }
+    },
+    {
+      "precedingQuestionSegment": {
+        "speaker": "teacher",
+        "start": 16.5,
+        "end": 19,
+        "text": "네, 8분의 1. 그럼 4분의 1이랑 8분의 1 중에 뭐가 더 클까요?",
+        "index": 5
+      },
+      "studentSegment": {
+        "speaker": "student",
+        "start": 19.6,
+        "end": 20.8,
+        "text": "8분의 1이요!",
+        "index": 6
+      },
+      "responseWindowSegments": [],
+      "nextQuestionSegment": {
+        "speaker": "teacher",
+        "start": 21,
+        "end": 23.5,
+        "text": "음, 왜 그렇게 생각했어요?",
+        "index": 7
+      }
+    },
+    {
+      "precedingQuestionSegment": {
+        "speaker": "teacher",
+        "start": 21,
+        "end": 23.5,
+        "text": "음, 왜 그렇게 생각했어요?",
+        "index": 7
+      },
+      "studentSegment": {
+        "speaker": "student",
+        "start": 27,
+        "end": 31,
+        "text": "8이 4보다 더 크니까요.",
+        "index": 8
+      },
+      "responseWindowSegments": [
+        {
+          "speaker": "teacher",
+          "start": 31.5,
+          "end": 36,
+          "text": "아, 8이 4보다 크니까 8분의 1이 더 크다고 생각했구나.",
+          "index": 9
+        }
+      ],
+      "nextQuestionSegment": {
+        "speaker": "teacher",
+        "start": 36.3,
+        "end": 39,
+        "text": "다른 친구들은 어떻게 생각해요? 동의해요?",
+        "index": 10
+      }
+    },
+    {
+      "precedingQuestionSegment": {
+        "speaker": "teacher",
+        "start": 36.3,
+        "end": 39,
+        "text": "다른 친구들은 어떻게 생각해요? 동의해요?",
+        "index": 10
+      },
+      "studentSegment": {
+        "speaker": "student",
+        "start": 44.5,
+        "end": 50,
+        "text": "아니요. 여덟 조각으로 나누면 한 조각이 더 작아져요.",
+        "index": 11
+      },
+      "responseWindowSegments": [],
+      "nextQuestionSegment": {
+        "speaker": "teacher",
+        "start": 50.5,
+        "end": 54,
+        "text": "오, 조각이 더 작아진다. 조금 더 설명해 줄래요?",
+        "index": 12
+      }
+    },
+    {
+      "precedingQuestionSegment": {
+        "speaker": "teacher",
+        "start": 50.5,
+        "end": 54,
+        "text": "오, 조각이 더 작아진다. 조금 더 설명해 줄래요?",
+        "index": 12
+      },
+      "studentSegment": {
+        "speaker": "student",
+        "start": 54.5,
+        "end": 62,
+        "text": "같은 피자를 더 많이 나누면 한 조각은 작아지니까 4분의 1이 더 커요.",
+        "index": 13
+      },
+      "responseWindowSegments": [
+        {
+          "speaker": "teacher",
+          "start": 62.5,
+          "end": 66,
+          "text": "좋아요. 끝까지 이유를 찾아서 설명했네요.",
+          "index": 14
+        },
+        {
+          "speaker": "teacher",
+          "start": 66.5,
+          "end": 74,
+          "text": "분모가 클수록 단위분수의 크기는 작아지는 거예요. 이걸 단위분수의 대소 관계라고 해요.",
+          "index": 15
+        },
+        {
+          "speaker": "teacher",
+          "start": 74.5,
+          "end": 86,
+          "text": "자, 이제 모둠별로 색종이 받고, 반으로 접고, 또 반으로 접은 다음에, 한 칸 색칠하고, 다 하면 옆 모둠이랑 비교해서 손 드세요.",
+          "index": 16
+        }
+      ],
+      "nextQuestionSegment": {
+        "speaker": "teacher",
+        "start": 120,
+        "end": 124,
+        "text": "3분의 1이랑 5분의 1 중에 뭐가 커요?",
+        "index": 17
+      }
+    },
+    {
+      "precedingQuestionSegment": {
+        "speaker": "teacher",
+        "start": 124.4,
+        "end": 125.2,
+        "text": "3분의 1이죠?",
+        "index": 18
+      },
+      "studentSegment": {
+        "speaker": "student",
+        "start": 126,
+        "end": 127,
+        "text": "네.",
+        "index": 19
+      },
+      "responseWindowSegments": [],
+      "nextQuestionSegment": {
+        "speaker": "teacher",
+        "start": 127.5,
+        "end": 133,
+        "text": "그럼 10분의 1이랑 100분의 1이 있으면, 어떻게 비교할 수 있을지 자기 방법으로 설명해 볼 사람?",
+        "index": 20
+      }
+    },
+    {
+      "precedingQuestionSegment": {
+        "speaker": "teacher",
+        "start": 127.5,
+        "end": 133,
+        "text": "그럼 10분의 1이랑 100분의 1이 있으면, 어떻게 비교할 수 있을지 자기 방법으로 설명해 볼 사람?",
+        "index": 20
+      },
+      "studentSegment": {
+        "speaker": "student",
+        "start": 138.5,
+        "end": 146,
+        "text": "100개로 나누면 엄청 작으니까 10분의 1이 더 커요.",
+        "index": 21
+      },
+      "responseWindowSegments": [
+        {
+          "speaker": "teacher",
+          "start": 146.5,
+          "end": 149,
+          "text": "정답!",
+          "index": 22
+        },
+        {
+          "speaker": "teacher",
+          "start": 149.5,
+          "end": 156,
+          "text": "오늘 배운 걸 짝한테 자기 말로 설명해 보세요.",
+          "index": 23
+        }
+      ],
+      "nextQuestionSegment": null
+    }
+  ],
+  "probingResults": [
+    {
+      "studentSegmentIndex": 1,
+      "hasResponseContent": true,
+      "hasProbingInWindow": false
+    },
+    {
+      "studentSegmentIndex": 4,
+      "hasResponseContent": false,
+      "hasProbingInWindow": false
+    },
+    {
+      "studentSegmentIndex": 6,
+      "hasResponseContent": false,
+      "hasProbingInWindow": false
+    },
+    {
+      "studentSegmentIndex": 8,
+      "hasResponseContent": true,
+      "hasProbingInWindow": true
+    },
+    {
+      "studentSegmentIndex": 11,
+      "hasResponseContent": false,
+      "hasProbingInWindow": false
+    },
+    {
+      "studentSegmentIndex": 13,
+      "hasResponseContent": true,
+      "hasProbingInWindow": true
+    },
+    {
+      "studentSegmentIndex": 19,
+      "hasResponseContent": false,
+      "hasProbingInWindow": false
+    },
+    {
+      "studentSegmentIndex": 21,
+      "hasResponseContent": true,
+      "hasProbingInWindow": true
+    }
+  ],
+  "suggestions": [
+    {
+      "questionIndex": 0,
+      "originalQuestionText": "여러분, 피자 한 판을 똑같이 네 조각으로 나눴어요. 그중에 한 조각은 전체의 얼마일까요?",
+      "criteriaAddressed": [
+        "Q5",
+        "Q6",
+        "Q8"
+      ],
+      "revisedQuestionLine": null,
+      "hintQuestionLine": null,
+      "revisedResponseLine": "4분의 1, 그렇게 답했구나. 어떻게 알았어요?",
+      "suggestedAction": "발문 후 최소 3.0초 이상 기다려 주세요 (지금 관찰된 대기 시간: 0.6초). 이유를 묻거나 다른 친구와 연결하기. 학생이 한 말을 구체적으로 되짚어 말하기.",
+      "whatAndWhy": [
+        {
+          "criterionId": "Q6",
+          "what": "학생의 답변에 대해 이유를 묻거나 다른 친구와 연결하는 말을 추가하기",
+          "why": "학생의 이해를 깊게 하고, 다른 친구와의 연결을 통해 학습을 확장하기 위해서입니다.",
+          "quotedOriginalText": "맞아요. 잘했어요."
+        },
+        {
+          "criterionId": "Q8",
+          "what": "학생이 한 말을 구체적으로 되짚어 말하기",
+          "why": "막연한 칭찬 대신 학생의 구체적인 답변을 인정하고 강화하기 위해서입니다.",
+          "quotedOriginalText": "맞아요. 잘했어요."
+        },
+        {
+          "criterionId": "Q5",
+          "what": "발문 후 최소 3초 이상 기다리기",
+          "why": "발문 후 0.6초 만에 다음 발화가 시작됐어요. 이 발문은 \"수렴적\" 발문이라 최소 3초 기다리는 게 좋아요.",
+          "quotedOriginalText": "여러분, 피자 한 판을 똑같이 네 조각으로 나눴어요. 그중에 한 조각은 전체의 얼마일까요?"
+        }
+      ],
+      "targetReactionSegmentIndices": [
+        2
+      ],
+      "validation": {
+        "reclassifiedOk": null,
+        "vocabOk": true,
+        "notCopiedOk": true,
+        "questionLineScopeOk": true,
+        "responseLineRequiredOk": true,
+        "responseLineFirstPersonOk": true,
+        "responseLineRevisedOk": true,
+        "noAnswerLeakOk": true,
+        "noAnswerLeakInQuestionOk": true,
+        "quotesGroundedOk": true,
+        "whatWhyIsolatedOk": true,
+        "hintQuestionLineRequiredOk": true,
+        "noAnswerLeakInHintOk": true,
+        "hintNotRestatementOk": true,
+        "actionScopeOk": true,
+        "praisedQuoteGroundedOk": true,
+        "whatWhyCoverageOk": true,
+        "usedCodeReplacementResponseLine": true,
+        "regenerated": true,
+        "stillFailingAfterRetry": false,
+        "notes": [
+          "코드 대체 대사 사용: \"4분의 1, 그렇게 답했구나. 어떻게 알았어요?\""
+        ]
+      },
+      "source": "ai"
+    },
+    {
+      "questionIndex": 3,
+      "originalQuestionText": "그럼 이번엔 여덟 조각으로 나누면 한 조각은 얼마예요? 그리고 네 조각일 때랑 비교하면 어때요? 누가 더 커요?",
+      "criteriaAddressed": [
+        "Q1",
+        "Q5"
+      ],
+      "revisedQuestionLine": "여덟 조각으로 나누면 한 조각은 얼마인가요?",
+      "hintQuestionLine": null,
+      "revisedResponseLine": null,
+      "suggestedAction": "발문 후 최소 3.0초 이상 기다려 주세요 (지금 관찰된 대기 시간: 0.5초). 먼저 '여덟 조각으로 나누면 한 조각은 얼마인가요?'를 묻고, 학생이 답하면 '네 조각으로 나누었을 때는 어떻게 될까요?'를 이어서 묻기.",
+      "whatAndWhy": [
+        {
+          "criterionId": "Q1",
+          "what": "먼저 '여덟 조각으로 나누면 한 조각은 얼마인가요?'를 묻고, 학생이 답하면 '네 조각으로 나누었을 때는 어떻게 될까요?'를 이어서 묻기.",
+          "why": "학생이 여러 질문 중 어떤 것에 답해야 할지 혼란스러울 수 있기 때문에, 질문을 하나씩 나누어 명확하게 하는 것이 중요해요.",
+          "quotedOriginalText": "그럼 이번엔 여덟 조각으로 나누면 한 조각은 얼마예요? 그리고 네 조각일 때랑 비교하면 어때요? 누가 더 커요?"
+        },
+        {
+          "criterionId": "Q5",
+          "what": "발문 후 최소 3초 이상 기다리기",
+          "why": "발문 후 0.5초 만에 다음 발화가 시작됐어요. 이 발문은 \"수렴적\" 발문이라 최소 3초 기다리는 게 좋아요.",
+          "quotedOriginalText": "그럼 이번엔 여덟 조각으로 나누면 한 조각은 얼마예요? 그리고 네 조각일 때랑 비교하면 어때요? 누가 더 커요?"
+        }
+      ],
+      "targetReactionSegmentIndices": [],
+      "validation": {
+        "reclassifiedOk": true,
+        "vocabOk": true,
+        "notCopiedOk": true,
+        "questionLineScopeOk": true,
+        "responseLineRequiredOk": true,
+        "responseLineFirstPersonOk": true,
+        "responseLineRevisedOk": null,
+        "noAnswerLeakOk": true,
+        "noAnswerLeakInQuestionOk": true,
+        "quotesGroundedOk": true,
+        "whatWhyIsolatedOk": true,
+        "hintQuestionLineRequiredOk": true,
+        "noAnswerLeakInHintOk": true,
+        "hintNotRestatementOk": true,
+        "actionScopeOk": true,
+        "praisedQuoteGroundedOk": true,
+        "whatWhyCoverageOk": true,
+        "usedCodeReplacementResponseLine": false,
+        "regenerated": true,
+        "stillFailingAfterRetry": false,
+        "notes": []
+      },
+      "source": "ai"
+    },
+    {
+      "questionIndex": 3,
+      "originalQuestionText": "그럼 이번엔 여덟 조각으로 나누면 한 조각은 얼마예요? 그리고 네 조각일 때랑 비교하면 어때요? 누가 더 커요?",
+      "criteriaAddressed": [
+        "Q1",
+        "Q5"
+      ],
+      "revisedQuestionLine": "여덟 조각으로 나누면 한 조각은 얼마인가요?",
+      "hintQuestionLine": null,
+      "revisedResponseLine": null,
+      "suggestedAction": "발문 후 최소 3.0초 이상 기다려 주세요 (지금 관찰된 대기 시간: 0.5초). 먼저 '여덟 조각으로 나누면 한 조각은 얼마인가요?'를 묻고, 학생이 답하면 '네 조각으로 나누었을 때는 어떻게 될까요?'를 이어서 묻기.",
+      "whatAndWhy": [
+        {
+          "criterionId": "Q1",
+          "what": "먼저 '여덟 조각으로 나누면 한 조각은 얼마인가요?'를 묻고, 학생이 답하면 '네 조각으로 나누었을 때는 어떻게 될까요?'를 이어서 묻기.",
+          "why": "학생이 여러 질문 중 어떤 것에 답해야 할지 혼란스러울 수 있기 때문에, 질문을 하나씩 나누어 명확하게 하는 것이 중요해요.",
+          "quotedOriginalText": "그럼 이번엔 여덟 조각으로 나누면 한 조각은 얼마예요? 그리고 네 조각일 때랑 비교하면 어때요? 누가 더 커요?"
+        },
+        {
+          "criterionId": "Q5",
+          "what": "발문 후 최소 3초 이상 기다리기",
+          "why": "발문 후 0.5초 만에 다음 발화가 시작됐어요. 이 발문은 \"수렴적\" 발문이라 최소 3초 기다리는 게 좋아요.",
+          "quotedOriginalText": "그럼 이번엔 여덟 조각으로 나누면 한 조각은 얼마예요? 그리고 네 조각일 때랑 비교하면 어때요? 누가 더 커요?"
+        }
+      ],
+      "targetReactionSegmentIndices": [],
+      "validation": {
+        "reclassifiedOk": true,
+        "vocabOk": true,
+        "notCopiedOk": true,
+        "questionLineScopeOk": true,
+        "responseLineRequiredOk": true,
+        "responseLineFirstPersonOk": true,
+        "responseLineRevisedOk": null,
+        "noAnswerLeakOk": true,
+        "noAnswerLeakInQuestionOk": true,
+        "quotesGroundedOk": true,
+        "whatWhyIsolatedOk": true,
+        "hintQuestionLineRequiredOk": true,
+        "noAnswerLeakInHintOk": true,
+        "hintNotRestatementOk": true,
+        "actionScopeOk": true,
+        "praisedQuoteGroundedOk": true,
+        "whatWhyCoverageOk": true,
+        "usedCodeReplacementResponseLine": false,
+        "regenerated": true,
+        "stillFailingAfterRetry": false,
+        "notes": []
+      },
+      "source": "ai"
+    },
+    {
+      "questionIndex": 3,
+      "originalQuestionText": "그럼 이번엔 여덟 조각으로 나누면 한 조각은 얼마예요? 그리고 네 조각일 때랑 비교하면 어때요? 누가 더 커요?",
+      "criteriaAddressed": [
+        "Q1",
+        "Q5"
+      ],
+      "revisedQuestionLine": "여덟 조각으로 나누면 한 조각은 얼마인가요?",
+      "hintQuestionLine": null,
+      "revisedResponseLine": null,
+      "suggestedAction": "발문 후 최소 3.0초 이상 기다려 주세요 (지금 관찰된 대기 시간: 0.5초). 먼저 '여덟 조각으로 나누면 한 조각은 얼마인가요?'를 묻고, 학생이 답하면 '네 조각으로 나누었을 때는 어떻게 될까요?'를 이어서 묻기.",
+      "whatAndWhy": [
+        {
+          "criterionId": "Q1",
+          "what": "먼저 '여덟 조각으로 나누면 한 조각은 얼마인가요?'를 묻고, 학생이 답하면 '네 조각으로 나누었을 때는 어떻게 될까요?'를 이어서 묻기.",
+          "why": "학생이 여러 질문 중 어떤 것에 답해야 할지 혼란스러울 수 있기 때문에, 질문을 하나씩 나누어 명확하게 하는 것이 중요해요.",
+          "quotedOriginalText": "그럼 이번엔 여덟 조각으로 나누면 한 조각은 얼마예요? 그리고 네 조각일 때랑 비교하면 어때요? 누가 더 커요?"
+        },
+        {
+          "criterionId": "Q5",
+          "what": "발문 후 최소 3초 이상 기다리기",
+          "why": "발문 후 0.5초 만에 다음 발화가 시작됐어요. 이 발문은 \"수렴적\" 발문이라 최소 3초 기다리는 게 좋아요.",
+          "quotedOriginalText": "그럼 이번엔 여덟 조각으로 나누면 한 조각은 얼마예요? 그리고 네 조각일 때랑 비교하면 어때요? 누가 더 커요?"
+        }
+      ],
+      "targetReactionSegmentIndices": [],
+      "validation": {
+        "reclassifiedOk": true,
+        "vocabOk": true,
+        "notCopiedOk": true,
+        "questionLineScopeOk": true,
+        "responseLineRequiredOk": true,
+        "responseLineFirstPersonOk": true,
+        "responseLineRevisedOk": null,
+        "noAnswerLeakOk": true,
+        "noAnswerLeakInQuestionOk": true,
+        "quotesGroundedOk": true,
+        "whatWhyIsolatedOk": true,
+        "hintQuestionLineRequiredOk": true,
+        "noAnswerLeakInHintOk": true,
+        "hintNotRestatementOk": true,
+        "actionScopeOk": true,
+        "praisedQuoteGroundedOk": true,
+        "whatWhyCoverageOk": true,
+        "usedCodeReplacementResponseLine": false,
+        "regenerated": true,
+        "stillFailingAfterRetry": false,
+        "notes": []
+      },
+      "source": "ai"
+    },
+    {
+      "questionIndex": 5,
+      "originalQuestionText": "네, 8분의 1. 그럼 4분의 1이랑 8분의 1 중에 뭐가 더 클까요?",
+      "criteriaAddressed": [
+        "Q5"
+      ],
+      "revisedQuestionLine": null,
+      "hintQuestionLine": null,
+      "revisedResponseLine": null,
+      "suggestedAction": "발문 후 최소 3.0초 이상 기다려 주세요 (지금 관찰된 대기 시간: 0.6초).",
+      "whatAndWhy": [
+        {
+          "criterionId": "Q5",
+          "what": "발문 후 최소 3초 이상 기다리기",
+          "why": "발문 후 0.6초 만에 다음 발화가 시작됐어요. 이 발문은 \"수렴적\" 발문이라 최소 3초 기다리는 게 좋아요.",
+          "quotedOriginalText": "네, 8분의 1. 그럼 4분의 1이랑 8분의 1 중에 뭐가 더 클까요?"
+        }
+      ],
+      "targetReactionSegmentIndices": [],
+      "validation": {
+        "reclassifiedOk": null,
+        "vocabOk": true,
+        "notCopiedOk": true,
+        "questionLineScopeOk": true,
+        "responseLineRequiredOk": true,
+        "responseLineFirstPersonOk": true,
+        "responseLineRevisedOk": null,
+        "noAnswerLeakOk": true,
+        "noAnswerLeakInQuestionOk": true,
+        "quotesGroundedOk": true,
+        "whatWhyIsolatedOk": true,
+        "hintQuestionLineRequiredOk": true,
+        "noAnswerLeakInHintOk": true,
+        "hintNotRestatementOk": true,
+        "actionScopeOk": true,
+        "praisedQuoteGroundedOk": true,
+        "whatWhyCoverageOk": true,
+        "usedCodeReplacementResponseLine": false,
+        "regenerated": false,
+        "stillFailingAfterRetry": false,
+        "notes": []
+      },
+      "source": "ai"
+    },
+    {
+      "questionIndex": 7,
+      "originalQuestionText": "음, 왜 그렇게 생각했어요?",
+      "criteriaAddressed": [
+        "Q5"
+      ],
+      "revisedQuestionLine": null,
+      "hintQuestionLine": null,
+      "revisedResponseLine": null,
+      "suggestedAction": "발문 후 최소 5.0초 이상 기다려 주세요 (지금 관찰된 대기 시간: 3.5초).",
+      "whatAndWhy": [
+        {
+          "criterionId": "Q5",
+          "what": "발문 후 최소 5초 이상 기다리기",
+          "why": "발문 후 3.5초 만에 다음 발화가 시작됐어요. 이 발문은 \"확산적\" 발문이라 최소 5초 기다리는 게 좋아요.",
+          "quotedOriginalText": "음, 왜 그렇게 생각했어요?"
+        }
+      ],
+      "targetReactionSegmentIndices": [],
+      "validation": {
+        "reclassifiedOk": null,
+        "vocabOk": true,
+        "notCopiedOk": true,
+        "questionLineScopeOk": true,
+        "responseLineRequiredOk": true,
+        "responseLineFirstPersonOk": true,
+        "responseLineRevisedOk": null,
+        "noAnswerLeakOk": true,
+        "noAnswerLeakInQuestionOk": true,
+        "quotesGroundedOk": true,
+        "whatWhyIsolatedOk": true,
+        "hintQuestionLineRequiredOk": true,
+        "noAnswerLeakInHintOk": true,
+        "hintNotRestatementOk": true,
+        "actionScopeOk": true,
+        "praisedQuoteGroundedOk": true,
+        "whatWhyCoverageOk": true,
+        "usedCodeReplacementResponseLine": false,
+        "regenerated": false,
+        "stillFailingAfterRetry": false,
+        "notes": []
+      },
+      "source": "ai"
+    },
+    {
+      "questionIndex": 12,
+      "originalQuestionText": "오, 조각이 더 작아진다. 조금 더 설명해 줄래요?",
+      "criteriaAddressed": [
+        "Q5"
+      ],
+      "revisedQuestionLine": null,
+      "hintQuestionLine": null,
+      "revisedResponseLine": null,
+      "suggestedAction": "발문 후 최소 5.0초 이상 기다려 주세요 (지금 관찰된 대기 시간: 0.5초).",
+      "whatAndWhy": [
+        {
+          "criterionId": "Q5",
+          "what": "발문 후 최소 5초 이상 기다리기",
+          "why": "발문 후 0.5초 만에 다음 발화가 시작됐어요. 이 발문은 \"확산적\" 발문이라 최소 5초 기다리는 게 좋아요.",
+          "quotedOriginalText": "오, 조각이 더 작아진다. 조금 더 설명해 줄래요?"
+        }
+      ],
+      "targetReactionSegmentIndices": [],
+      "validation": {
+        "reclassifiedOk": null,
+        "vocabOk": true,
+        "notCopiedOk": true,
+        "questionLineScopeOk": true,
+        "responseLineRequiredOk": true,
+        "responseLineFirstPersonOk": true,
+        "responseLineRevisedOk": null,
+        "noAnswerLeakOk": true,
+        "noAnswerLeakInQuestionOk": true,
+        "quotesGroundedOk": true,
+        "whatWhyIsolatedOk": true,
+        "hintQuestionLineRequiredOk": true,
+        "noAnswerLeakInHintOk": true,
+        "hintNotRestatementOk": true,
+        "actionScopeOk": true,
+        "praisedQuoteGroundedOk": true,
+        "whatWhyCoverageOk": true,
+        "usedCodeReplacementResponseLine": false,
+        "regenerated": false,
+        "stillFailingAfterRetry": false,
+        "notes": []
+      },
+      "source": "ai"
+    },
+    {
+      "questionIndex": 17,
+      "originalQuestionText": "3분의 1이랑 5분의 1 중에 뭐가 커요?",
+      "criteriaAddressed": [
+        "Q4",
+        "Q3",
+        "Q5"
+      ],
+      "revisedQuestionLine": null,
+      "hintQuestionLine": "3분의 1과 5분의 1을 색종이로 직접 잘라서 비교해 볼까요?",
+      "revisedResponseLine": null,
+      "suggestedAction": "답을 말하지 말고 3초 기다리기.",
+      "whatAndWhy": [
+        {
+          "criterionId": "Q4",
+          "what": "자문자답 발화가 유도 발문 형태가 되지 않도록, 학생이 스스로 생각할 기회를 주기 위해 발문을 수정해야 합니다.",
+          "why": "\"3분의 1이죠?\"는 정답을 이미 알려주면서 예·아니오로만 확인하는 질문이라, 학생이 스스로 생각할 필요가 없었어요.",
+          "quotedOriginalText": "3분의 1이죠?"
+        },
+        {
+          "criterionId": "Q3",
+          "what": "학생이 답하기 전에 교사가 스스로 답하지 않고 기다리기",
+          "why": "교사가 \"3분의 1이죠?\"라고 스스로 답을 말해서, 학생이 생각할 기회를 갖지 못했어요.",
+          "quotedOriginalText": "3분의 1이죠?"
+        }
+      ],
+      "targetReactionSegmentIndices": [],
+      "validation": {
+        "reclassifiedOk": null,
+        "vocabOk": true,
+        "notCopiedOk": true,
+        "questionLineScopeOk": true,
+        "responseLineRequiredOk": true,
+        "responseLineFirstPersonOk": true,
+        "responseLineRevisedOk": null,
+        "noAnswerLeakOk": true,
+        "noAnswerLeakInQuestionOk": true,
+        "quotesGroundedOk": true,
+        "whatWhyIsolatedOk": true,
+        "hintQuestionLineRequiredOk": true,
+        "noAnswerLeakInHintOk": true,
+        "hintNotRestatementOk": true,
+        "actionScopeOk": true,
+        "praisedQuoteGroundedOk": true,
+        "whatWhyCoverageOk": true,
+        "usedCodeReplacementResponseLine": false,
+        "regenerated": false,
+        "stillFailingAfterRetry": false,
+        "notes": []
+      },
+      "source": "ai"
+    }
+  ],
+  "suggestionStats": {
+    "scopeCorrections": {
+      "Q3가 없어 hintQuestionLine을 null로 정정": 9,
+      "문장형 기준이 없어 revisedQuestionLine을 null로 정정": 3,
+      "그룹에 없는(또는 Q3·Q5) 기준의 whatAndWhy 항목을 버림": 5,
+      "Q6·Q7·Q8이 없어 revisedResponseLine을 null로 정정": 4,
+      "그룹에 없는(또는 Q3·Q5) 기준의 actions 항목을 버림": 2
+    },
+    "regenerationFailures": {
+      "responseLineRevisedOk": 1,
+      "noAnswerLeakInQuestionOk": 3
+    }
+  },
+  "report": {
+    "metrics": [
+      {
+        "id": "L1",
+        "name": "발문 유형 분포",
+        "grade": "좋음",
+        "detail": "전체 발문 12개 중 확산적·평가적 발문 5개 (42%) — 참고 기준 30%",
+        "isTemporaryCriteria": true,
+        "evidenceSegmentIndices": [
+          7,
+          10,
+          10
+        ]
+      },
+      {
+        "id": "L2",
+        "name": "발문 후 대기 시간",
+        "grade": "개선 필요",
+        "detail": "평균 대기 2.2초, 8건 중 3초 이상인 비율 38%",
+        "isTemporaryCriteria": true,
+        "evidenceSegmentIndices": [
+          0,
+          3,
+          5
+        ]
+      },
+      {
+        "id": "L3",
+        "name": "학생 답 후 대기 시간",
+        "grade": "개선 필요",
+        "detail": "평균 대기 0.4초, 8건 중 3초 이상인 비율 0%",
+        "isTemporaryCriteria": true,
+        "evidenceSegmentIndices": [
+          1,
+          4,
+          6
+        ]
+      },
+      {
+        "id": "L4",
+        "name": "후속 발문(캐묻기) 비율",
+        "grade": "좋음",
+        "detail": "교사 반응 4건 중 캐묻기(이유 묻기·되짚기·연결 등) 3건 (75%)",
+        "isTemporaryCriteria": true,
+        "evidenceSegmentIndices": [
+          1,
+          8,
+          13
+        ]
+      },
+      {
+        "id": "L5",
+        "name": "발문 흐름",
+        "grade": "개선 필요",
+        "detail": "발문이 기초 확인 단계에서 시작하지만, 이후의 질문들이 반복적이고 심화되지 않아 흐름이 매끄럽지 않습니다. 특히, 같은 질문이 여러 번 반복되어 있어 학생들의 사고를 자극하는 데 한계가 있습니다. 확산적 질문이 등장하지만, 그 이전의 수렴적 질문들이 충분히 다양하지 않아 심화가 부족합니다. 정리 단계에서의 종합적인 질문이 부족하여 학생들이 배운 내용을 종합할 기회가 적습니다.",
+        "isTemporaryCriteria": false,
+        "evidenceSegmentIndices": [
+          0,
+          3,
+          7,
+          10,
+          12,
+          20
+        ]
+      },
+      {
+        "id": "L6",
+        "name": "지적 사항",
+        "grade": null,
+        "detail": "지적 총 11건, 기준 6종 — 우선 개선 기준은 별도 표 참고",
+        "isTemporaryCriteria": false,
+        "evidenceSegmentIndices": []
+      },
+      {
+        "id": "L7",
+        "name": "진도상 모를 수 있는 용어",
+        "grade": "좋음",
+        "detail": "아직 모름 확정 용어 없음",
+        "isTemporaryCriteria": false,
+        "evidenceSegmentIndices": []
+      },
+      {
+        "id": "L8",
+        "name": "실생활 연결",
+        "grade": "좋음",
+        "detail": "발화 0은 피자를 나누는 실생활 예시를 통해 분수를 설명하고 있으며, 발화 3은 조각의 크기를 비교하는 일상적인 상황을 제시하고 있습니다. 발화 16은 색종이를 활용하여 분수를 시각적으로 표현하고 비교하는 활동을 통해 학생들이 실생활에서 접할 수 있는 경험을 연결하고 있습니다.",
+        "isTemporaryCriteria": false,
+        "evidenceSegmentIndices": [
+          0,
+          3,
+          16
+        ]
+      }
+    ],
+    "goodPoints": [
+      {
+        "text": "학생 답변 후 평가로 끝내지 않고 이유를 묻거나 되짚는 반응을 보인 사례가 있습니다 (학생 발화 [21] \"100개로 나누면 엄청 작으니까 10분의 1이 더 커요.\" 이후).",
+        "segmentIndices": [
+          21
+        ],
+        "relatedCriterionId": "L4"
+      },
+      {
+        "text": "확산적 발문을 사용했습니다: [10] \"다른 친구들은 어떻게 생각해요? 동의해요?\"",
+        "segmentIndices": [
+          10
+        ],
+        "relatedCriterionId": "L1"
+      }
+    ],
+    "priorityFixes": [
+      {
+        "criterionId": "Q5",
+        "criterionName": "대기 시간 부족 (발문 후)",
+        "severity": "문제",
+        "count": 6,
+        "exampleSegmentIndices": [
+          0,
+          3
+        ]
+      },
+      {
+        "criterionId": "Q1",
+        "criterionName": "겹질문",
+        "severity": "문제",
+        "count": 1,
+        "exampleSegmentIndices": [
+          3
+        ]
+      },
+      {
+        "criterionId": "Q3",
+        "criterionName": "자문자답",
+        "severity": "문제",
+        "count": 1,
+        "exampleSegmentIndices": [
+          17
+        ]
+      }
+    ],
+    "overallSummary": "발문 유형 분포에서 확산적·평가적 발문이 42%로 좋은 비율을 보였습니다. 그러나 발문 후 대기 시간이 평균 2.2초로 짧아, 학생들이 충분히 생각할 시간을 갖지 못하고 있습니다. 또한, 발문 흐름이 매끄럽지 않고 반복적인 질문이 많아 학생들의 사고를 자극하는 데 한계가 있습니다. 이러한 점들을 개선하여 학생들의 참여와 사고를 더욱 촉진할 필요가 있습니다.",
+    "summaryWarnings": [],
+    "ignoredFindingCount": 0,
+    "summaryStale": false
+  }
+}

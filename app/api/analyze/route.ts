@@ -1,57 +1,54 @@
-import { mkdir, writeFile } from "node:fs/promises";
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
+import { writeFile, unlink } from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
-import { findVoiceSample, recordingsDir, extFromMime } from "../../lib/voiceSample.server.js";
+import crypto from "node:crypto";
+import { transcribeAudio } from "../../../src/input/transcribeAudio.js";
+import { loadFromDiarizeResult } from "../../../src/input/loadTranscript.js";
+import { analyzeTranscript } from "../../../src/run.js";
 
-const run = promisify(execFile);
+// Vercel 서버리스에서 돌아가는 라우트 — child_process 없이 이 함수 안에서 바로
+// 받아쓰기(transcribeAudio)부터 분석(analyzeTranscript)까지 끝낸다.
+export const runtime = "nodejs";
+export const maxDuration = 300;
 
-// 터미널에서 쓰던 명령(npm run transcribe / npm run analyze)을 서버가 대신 실행한다.
-// 이렇게 하면 이미 검증된 분석 코드를 한 줄도 바꾸지 않고 화면에 연결할 수 있다.
-async function runScript(script: string, args: string[]) {
-  const tsx = path.join(process.cwd(), "node_modules", ".bin", "tsx");
-  return run(tsx, [script, ...args], { cwd: process.cwd(), env: process.env, maxBuffer: 20 * 1024 * 1024, timeout: 15 * 60 * 1000 });
+function extFromMime(mime: string): string {
+  return mime.includes("mp4") ? ".mp4" : ".webm";
 }
 
-// POST: 수업 녹음 + 학년을 받아 1~6단계를 돌리고, 결과 이름을 돌려준다
+// POST: 수업 녹음 + 목소리 샘플 + 학년을 받아 분석 결과 전체(JSON)를 돌려준다.
+// 서버에는 아무것도 남기지 않는다 — 브라우저가 응답을 IndexedDB에 저장한다.
 export async function POST(req: Request) {
   const form = await req.formData();
-  const file = form.get("audio");
+  const lessonAudio = form.get("audio");
+  const voiceSample = form.get("voiceSample");
   const grade = Number(form.get("grade"));
-  if (!(file instanceof File)) return Response.json({ error: "수업 녹음 파일이 없어요." }, { status: 400 });
+
+  if (!(lessonAudio instanceof File)) return Response.json({ error: "수업 녹음 파일이 없어요." }, { status: 400 });
+  if (!(voiceSample instanceof File)) return Response.json({ error: "내 목소리 샘플이 없어요. 먼저 목소리를 녹음해 주세요." }, { status: 400 });
   if (!(grade >= 1 && grade <= 6)) return Response.json({ error: "학년을 골라 주세요." }, { status: 400 });
 
-  const voice = await findVoiceSample();
-  if (!voice) return Response.json({ error: "내 목소리 샘플이 없어요. 먼저 목소리를 녹음해 주세요." }, { status: 400 });
-
-  // 이름 예: lesson-20261109-2130 (날짜·시각)
+  // 이름 예: lesson-20261109-2130 (날짜·시각) — IndexedDB 저장 키로도 쓴다.
   const now = new Date();
   const p = (n: number) => String(n).padStart(2, "0");
   const name = `lesson-${now.getFullYear()}${p(now.getMonth() + 1)}${p(now.getDate())}-${p(now.getHours())}${p(now.getMinutes())}${p(now.getSeconds())}`;
 
-  await mkdir(recordingsDir(), { recursive: true });
-  const audioPath = path.join(recordingsDir(), name + extFromMime(file.type));
-  await writeFile(audioPath, Buffer.from(await file.arrayBuffer()));
+  const tmpId = crypto.randomUUID();
+  const lessonAudioPath = path.join(os.tmpdir(), `${tmpId}-lesson${extFromMime(lessonAudio.type)}`);
+  const voiceSamplePath = path.join(os.tmpdir(), `${tmpId}-voice${extFromMime(voiceSample.type)}`);
+
+  await writeFile(lessonAudioPath, Buffer.from(await lessonAudio.arrayBuffer()));
+  await writeFile(voiceSamplePath, Buffer.from(await voiceSample.arrayBuffer()));
 
   try {
-    await runScript("src/transcribe.ts", [audioPath, voice, String(grade), name]);
-    await runScript("src/run.ts", [path.join("output", "transcripts", `${name}.json`)]);
+    const rawResponse = await transcribeAudio({ audioFilePath: lessonAudioPath, teacherSampleFilePath: voiceSamplePath });
+    const transcript = loadFromDiarizeResult(rawResponse, grade);
+    const analysis = await analyzeTranscript(transcript, name);
+    return Response.json(analysis);
   } catch (err) {
-    const e = err as { stderr?: string; message?: string };
-    const detail = extractErrorDetail(e.stderr || e.message || "");
-    return Response.json({ error: "분석 중 오류가 났어요.", detail }, { status: 500 });
+    const message = err instanceof Error ? err.message : String(err);
+    return Response.json({ error: "분석 중 오류가 났어요.", detail: message }, { status: 500 });
+  } finally {
+    await unlink(lessonAudioPath).catch(() => {});
+    await unlink(voiceSamplePath).catch(() => {});
   }
-  return Response.json({ name });
-}
-
-// 자식 프로세스 stderr에서 사람이 읽을 메시지만 뽑는다: "Error:" 뒤에 오는 실제 이유를
-// 찾고(스택 추적·에러 객체 속성이 뒤에 더 있어도 무시), 못 찾으면 첫 줄을 쓴다.
-function extractErrorDetail(stderr: string): string {
-  const marker = "Error:";
-  const idx = stderr.indexOf(marker);
-  if (idx !== -1) {
-    const line = stderr.slice(idx + marker.length).split("\n")[0].trim();
-    if (line) return line;
-  }
-  return stderr.split("\n").find((l) => l.trim())?.trim() ?? "";
 }

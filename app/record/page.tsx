@@ -3,11 +3,16 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { hasVoiceSample, saveVoiceSample, getVoiceSampleBlob } from "../lib/voiceSample.client.js";
+import { saveLesson } from "../lib/lessonStore.client.js";
+import type { AnalysisResult } from "../../src/types/analysis.js";
 
 // 녹음 화면의 단계: 확인 중 → (처음이면) 내 목소리 녹음 → 수업 녹음 준비 → 녹음 중 → 분석 중
 type Step = "checking" | "voice" | "voiceRecording" | "ready" | "lessonRecording" | "analyzing" | "error";
 
 const VOICE_SECONDS = 8;
+// Vercel 요청 본문 한도(4.5MB)보다 조금 낮게 잡은 업로드 허용 크기
+const MAX_LESSON_AUDIO_BYTES = 4 * 1024 * 1024;
 
 /** 브라우저가 지원하는 녹음 형식 고르기 (크롬: webm, 사파리: mp4) */
 function pickMime(): string {
@@ -21,8 +26,8 @@ function pickMime(): string {
 async function startRecorder() {
   const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
   const mimeType = pickMime();
-  // 32kbps: 40분 녹음도 약 10MB로 25MB 제한 안에 들어간다
-  const rec = new MediaRecorder(stream, { mimeType: mimeType || undefined, audioBitsPerSecond: 32000 });
+  // 16kbps: Vercel 요청 크기 제한(4.5MB) 안에 더 긴 녹음이 들어가게 낮춤
+  const rec = new MediaRecorder(stream, { mimeType: mimeType || undefined, audioBitsPerSecond: 16000 });
   const chunks: Blob[] = [];
   rec.ondataavailable = (e) => e.data.size > 0 && chunks.push(e.data);
   rec.start(1000);
@@ -55,9 +60,8 @@ export default function RecordPage() {
       const g = Number(localStorage.getItem("balmun-grade"));
       if (g >= 1 && g <= 6) setGrade(g);
     } catch {}
-    fetch("/api/voice")
-      .then((r) => r.json())
-      .then((d) => setStep(d.exists ? "ready" : "voice"))
+    hasVoiceSample()
+      .then((exists) => setStep(exists ? "ready" : "voice"))
       .catch(() => setStep("voice"));
     return () => {
       if (timer.current) clearInterval(timer.current);
@@ -69,7 +73,7 @@ export default function RecordPage() {
     setStep("error");
   }
 
-  // 내 목소리 8초 녹음 → 자동으로 멈추고 서버에 저장
+  // 내 목소리 8초 녹음 → 자동으로 멈추고 브라우저(IndexedDB)에 저장
   async function recordVoice() {
     try {
       const r = await startRecorder();
@@ -82,11 +86,12 @@ export default function RecordPage() {
         if (left <= 0) {
           clearInterval(timer.current!);
           const blob = await r.stop();
-          const form = new FormData();
-          form.append("audio", blob, fileName(blob, "voice"));
-          const res = await fetch("/api/voice", { method: "POST", body: form });
-          if (res.ok) setStep("ready");
-          else fail("목소리를 저장하지 못했어요. 다시 시도해 주세요.");
+          try {
+            await saveVoiceSample(blob);
+            setStep("ready");
+          } catch {
+            fail("목소리를 저장하지 못했어요. 다시 시도해 주세요.");
+          }
         }
       }, 1000);
     } catch {
@@ -114,15 +119,27 @@ export default function RecordPage() {
     if (!recorder.current) return;
     if (timer.current) clearInterval(timer.current);
     const blob = await recorder.current.stop();
+
+    if (blob.size > MAX_LESSON_AUDIO_BYTES) {
+      const mb = (blob.size / (1024 * 1024)).toFixed(1);
+      return fail(`녹음이 너무 길어요 (${mb}MB). 더 짧게 녹음해 주세요.`);
+    }
+
+    const voiceBlob = await getVoiceSampleBlob();
+    if (!voiceBlob) return fail("내 목소리 샘플이 없어요. 먼저 목소리를 녹음해 주세요.");
+
     setStep("analyzing");
     const form = new FormData();
     form.append("audio", blob, fileName(blob, "lesson"));
+    form.append("voiceSample", voiceBlob, fileName(voiceBlob, "voice"));
     form.append("grade", String(grade));
     try {
       const res = await fetch("/api/analyze", { method: "POST", body: form });
       const data = await res.json();
       if (!res.ok) return fail(data.error ?? "분석 중 오류가 났어요.", data.detail);
-      router.push(`/lesson/${data.name}?new=1`);
+      const analysis = data as AnalysisResult;
+      await saveLesson(analysis.sourceFile, analysis);
+      router.push(`/lesson/${analysis.sourceFile}?new=1`);
     } catch {
       fail("서버에 연결하지 못했어요. 터미널에서 npm run dev 가 켜져 있는지 확인해 주세요.");
     }
@@ -203,7 +220,7 @@ export default function RecordPage() {
           <h1 className="text-2xl font-bold">문제가 생겼어요</h1>
           <p className="mt-3 text-stone-600">{error.msg}</p>
           {error.detail && <pre className="mt-4 max-w-full overflow-x-auto whitespace-pre-wrap rounded-xl bg-stone-100 p-3 text-left text-xs text-stone-500">{error.detail}</pre>}
-          <button onClick={() => { setError(null); setStep("checking"); fetch("/api/voice").then((r) => r.json()).then((d) => setStep(d.exists ? "ready" : "voice")); }} className="mt-6 rounded-xl bg-chalk px-5 py-2.5 font-semibold text-white">
+          <button onClick={() => { setError(null); setStep("checking"); hasVoiceSample().then((exists) => setStep(exists ? "ready" : "voice")); }} className="mt-6 rounded-xl bg-chalk px-5 py-2.5 font-semibold text-white">
             다시 시도
           </button>
         </>

@@ -16,6 +16,9 @@ export default function Home() {
         <Link href="/history" className="rounded-2xl border border-line bg-white py-3.5 font-semibold text-stone-600 transition hover:bg-stone-50">
           기록
         </Link>
+        <Link href="/lesson/sample-transcript" className="text-sm text-stone-400 underline-offset-2 hover:text-chalk hover:underline">
+          예시 수업 보기 (녹음 없이)
+        </Link>
       </div>
     </main>
   );

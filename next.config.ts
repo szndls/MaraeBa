@@ -9,6 +9,12 @@ const nextConfig: NextConfig = {
       ".js": [".js", ".ts", ".tsx"],
     },
   },
+  // criteria/*.json·*.yaml은 node:fs(readFileSync)로 런타임에 읽어서, 코드를 정적으로
+  // 분석하는 Next의 파일 트레이싱이 못 찾는다 — Vercel 배포 번들에 빠지면 /api/analyze가
+  // 깨지므로 명시적으로 포함시킨다.
+  outputFileTracingIncludes: {
+    "/api/*": ["./criteria/**/*"],
+  },
 };
 
 export default nextConfig;
