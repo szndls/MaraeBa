@@ -18,6 +18,12 @@ const CHUNK_SECONDS = 10 * 60;
 // Vercel 요청 본문 한도(4.5MB)보다 조금 낮게 잡은 업로드 허용 크기 — 10분 조각은
 // 16kbps 기준 약 1.2MB라 평소엔 안 걸리지만, 혹시 모를 긴 조각에 대한 안전장치
 const MAX_CHUNK_AUDIO_BYTES = 4 * 1024 * 1024;
+// 분석(/api/analyze)이 Vercel 300초 안에 끝나는 최대 수업 길이. 실측: 2.6분 118초,
+// 10.6분 251초, 21.1분 438초 — 10분이면 약 240초로 재시도·네트워크 변동 여유가 남는다.
+const MAX_RECORDING_MINUTES = 10;
+const MAX_RECORDING_SECONDS = MAX_RECORDING_MINUTES * 60;
+// 자동 종료 시각과 조각 전환 시각이 겹치면 1초 미만의 빈 조각이 생길 수 있어 건너뛴다(16kbps ≈ 2KB/초)
+const MIN_CHUNK_AUDIO_BYTES = 4 * 1024;
 
 /** 브라우저가 지원하는 녹음 형식 고르기 (크롬: webm, 사파리: mp4) */
 function pickMime(): string {
@@ -74,6 +80,12 @@ export default function RecordPage() {
     };
   }, []);
 
+  // 최대 녹음 시간이 되면 자동으로 녹음을 끝내고 분석으로 넘어간다
+  useEffect(() => {
+    if (step === "lessonRecording" && seconds >= MAX_RECORDING_SECONDS) finishLesson();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, seconds]);
+
   function fail(msg: string, detail?: string) {
     setError({ msg, detail });
     setStep("error");
@@ -115,6 +127,7 @@ export default function RecordPage() {
   // 계속되는 동안) 백그라운드에서 시작해서, "끝내고 분석하기"를 눌렀을 때 기다리는
   // 시간을 줄인다.
   async function transcribeChunk(blob: Blob, offsetSeconds: number): Promise<TranscriptSegment[]> {
+    if (blob.size < MIN_CHUNK_AUDIO_BYTES) return [];
     if (blob.size > MAX_CHUNK_AUDIO_BYTES) {
       const mb = (blob.size / (1024 * 1024)).toFixed(1);
       throw new Error(`녹음 조각이 너무 커요 (${mb}MB).`);
@@ -154,11 +167,13 @@ export default function RecordPage() {
 
   // 수업 녹음 끝 → 마지막 조각까지 받아쓴 뒤 전부 합쳐서 분석 1번 실행 → 보고서로 이동
   async function finishLesson() {
-    if (!lessonRecorder.current) return;
+    const recorder = lessonRecorder.current;
+    if (!recorder) return;
+    lessonRecorder.current = null; // 버튼 클릭과 자동 종료가 겹쳐도 한 번만 실행
     if (timer.current) clearInterval(timer.current);
     setStep("analyzing");
     try {
-      await lessonRecorder.current.stop(); // 마지막(짧은) 조각도 transcribeChunk 큐에 들어감
+      await recorder.stop(); // 마지막(짧은) 조각도 transcribeChunk 큐에 들어감
       const chunkResults = await Promise.all(pendingChunks.current);
       const segments: TranscriptSegment[] = chunkResults
         .flat()
@@ -217,6 +232,7 @@ export default function RecordPage() {
         <>
           <h1 className="text-3xl font-bold">수업 녹음 준비 완료</h1>
           <p className="mt-3 text-stone-500">휴대폰이나 노트북을 교실 가운데에 두고 시작하세요.</p>
+          <p className="mt-2 text-sm font-semibold text-chalk">최대 {MAX_RECORDING_MINUTES}분까지 녹음할 수 있어요</p>
           <label className="mt-8 flex items-center gap-3 text-sm font-semibold text-stone-600">
             학년
             <select value={grade} onChange={(e) => setGrade(Number(e.target.value))} className="rounded-xl border border-line bg-white px-3 py-2 font-normal">
@@ -240,7 +256,9 @@ export default function RecordPage() {
             <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-rose-500" /> 수업 녹음 중
           </div>
           <div className="font-mono text-6xl font-bold tabular-nums">{mmss(seconds)}</div>
-          <p className="mt-3 text-xs text-stone-400">{Math.floor(seconds / CHUNK_SECONDS) + 1}번째 조각 녹음 중 — 긴 수업도 괜찮아요</p>
+          <p className="mt-3 text-xs text-stone-400">
+            최대 {MAX_RECORDING_MINUTES}분 — {mmss(Math.max(0, MAX_RECORDING_SECONDS - seconds))} 남으면 자동으로 끝나고 분석해요
+          </p>
           <button onClick={finishLesson} className="mt-10 w-full max-w-xs rounded-2xl bg-ink py-4 text-lg font-bold text-white transition hover:opacity-90">
             녹음 끝내고 분석하기
           </button>

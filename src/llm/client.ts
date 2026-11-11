@@ -25,3 +25,10 @@ export function getAnalysisModel(): string {
 export function getTranscribeModel(): string {
   return process.env.OPENAI_TRANSCRIBE_MODEL || "gpt-4o-transcribe-diarize";
 }
+
+/** LLM 묶음(chunk)을 동시에 몇 개까지 병렬로 보낼지. 너무 크면 OpenAI 속도 제한(429)에
+ *  걸리기 쉬워진다 — src/llm/batchWithRetry.ts가 429는 잠깐 기다렸다 재시도한다. */
+export function getBatchConcurrency(): number {
+  const raw = Number(process.env.OPENAI_BATCH_CONCURRENCY);
+  return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : 6;
+}
