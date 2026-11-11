@@ -3,6 +3,7 @@ import type { Suggestion } from "../../../src/types/suggestion.js";
 import { computeFindingId } from "../../../src/report/findingId.js";
 import { HIGHLIGHT_GROUPS, groupForCriterion } from "../../lib/highlightConfig.js";
 import { getSuggestionFieldVisibility } from "../../lib/suggestionFieldVisibility.js";
+import { relatedQuestionIndices as findRelatedQuestionIndices } from "../../lib/relatedQuestions.js";
 
 // "개선 발문/힌트/개선 행동"은 발문 쪼갠에 속하고, "교사 반응 대사"는 반응 발화 쪽에
 // 속한다 — 반응 발화([2] 등)를 눌렀을 때 그 발문의 대기시간 행동까지 같이 뜨는 걸
@@ -31,6 +32,9 @@ export function DetailPanel({
   selectedSegmentIndex,
   questioningFindings,
   suggestions,
+  pendingSuggestionIndices,
+  failedSuggestionIndices,
+  onRetrySuggestion,
   ignoredFindingIds,
   onToggleIgnore,
   onClose,
@@ -38,6 +42,11 @@ export function DetailPanel({
   selectedSegmentIndex: number;
   questioningFindings: QuestioningFinding[];
   suggestions: Suggestion[];
+  /** 지금 만들고 있는 개선안의 발문 번호 */
+  pendingSuggestionIndices: Set<number>;
+  /** 만들다 실패한 개선안의 발문 번호 */
+  failedSuggestionIndices: Set<number>;
+  onRetrySuggestion: (questionIndex: number) => void;
   ignoredFindingIds: Set<string>;
   onToggleIgnore: (id: string) => void;
   onClose: () => void;
@@ -50,12 +59,12 @@ export function DetailPanel({
   const activeFindingsHere = findingsHere.filter((f) => !ignoredFindingIds.has(computeFindingId(f)));
   const activeCriteriaHere = new Set(activeFindingsHere.map((f) => f.criterionId));
 
-  const relatedQuestionIndices = Array.from(
-    new Set(activeFindingsHere.map((f) => f.targetQuestionIndex).filter((x): x is number => x !== null))
-  );
+  const relatedQuestionIndices = findRelatedQuestionIndices(questioningFindings, selectedSegmentIndex, ignoredFindingIds);
   const relatedSuggestions = relatedQuestionIndices
     .map((qIdx) => suggestions.find((s) => s.questionIndex === qIdx))
     .filter((s): s is Suggestion => s !== undefined);
+  const pendingHere = relatedQuestionIndices.filter((q) => pendingSuggestionIndices.has(q));
+  const failedHere = relatedQuestionIndices.filter((q) => failedSuggestionIndices.has(q));
 
   const showQuestionFields = QUESTION_MOMENT_CRITERIA.some((id) => activeCriteriaHere.has(id));
   const showReactionFields = REACTION_MOMENT_CRITERIA.some((id) => activeCriteriaHere.has(id));
@@ -127,6 +136,28 @@ export function DetailPanel({
           </div>
         );
       })}
+
+      {pendingHere.map((q) => (
+        <div key={`pending-${q}`} className="space-y-2 border-t border-line pt-4">
+          <h3 className="flex items-center gap-1.5 text-sm font-bold text-chalk">✏️ 이렇게 바꿔 보세요 <span className="font-normal text-stone-400">발문 [{q}]</span></h3>
+          <div className="flex items-center gap-2 rounded-xl bg-stone-50 px-3.5 py-3 text-sm text-stone-500">
+            <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-chalk-soft border-t-chalk" />
+            개선안 만드는 중…
+          </div>
+        </div>
+      ))}
+
+      {failedHere.map((q) => (
+        <div key={`failed-${q}`} className="space-y-2 border-t border-line pt-4">
+          <h3 className="flex items-center gap-1.5 text-sm font-bold text-chalk">✏️ 이렇게 바꿔 보세요 <span className="font-normal text-stone-400">발문 [{q}]</span></h3>
+          <div className="flex items-center justify-between gap-2 rounded-xl bg-stone-50 px-3.5 py-3 text-sm text-stone-500">
+            개선안을 만들지 못했어요.
+            <button type="button" onClick={() => onRetrySuggestion(q)} className="rounded-lg border border-line bg-white px-2.5 py-1 text-xs font-medium text-stone-600 hover:bg-stone-100">
+              다시 시도
+            </button>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

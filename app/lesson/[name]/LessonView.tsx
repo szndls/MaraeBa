@@ -1,10 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import type { AnalysisResult } from "../../../src/types/analysis.js";
 import type { LessonReport } from "../../../src/types/report.js";
+import type { Suggestion } from "../../../src/types/suggestion.js";
 import { computeFindingId } from "../../../src/report/findingId.js";
+import { groupFindingsByQuestion } from "../../../src/suggestions/groupFindingsByQuestion.js";
+import { relatedQuestionIndices } from "../../lib/relatedQuestions.js";
+import { saveLesson } from "../../lib/lessonStore.client.js";
 import { computeSegmentHighlights } from "../../lib/computeHighlights.js";
 import { HIGHLIGHT_GROUPS, groupForCriterion, type HighlightGroupKey } from "../../lib/highlightConfig.js";
 import { loadIgnoredIds, saveIgnoredIds } from "../../lib/localIgnoreStore.js";
@@ -75,6 +79,76 @@ export function LessonView({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [name]);
+
+  // 개선안: 분석 때 미리 만들지 않은 수업(suggestionsDeferred)은, 발화를 누를 때 그 발문
+  // 것만 /api/suggestion으로 만들고 IndexedDB의 분석 결과에 저장해서 다음엔 바로 보인다.
+  const [suggestions, setSuggestions] = useState<Suggestion[]>(analysis.suggestions);
+  const suggestionsRef = useRef<Suggestion[]>(analysis.suggestions);
+  const [pendingSuggestionIndices, setPendingSuggestionIndices] = useState<Set<number>>(new Set());
+  const [failedSuggestionIndices, setFailedSuggestionIndices] = useState<Set<number>>(new Set());
+  const inFlight = useRef<Set<number>>(new Set());
+
+  // 한 발화에 질문 문장이 여럿이면 같은 발문 번호의 묶음이 여러 개 나온다 — 미리 만들던
+  // 때 화면이 첫 번째 개선안을 보여 줬던 것과 맞추려고 첫 번째 묶음만 쓴다.
+  const groupsByQuestion = useMemo(() => {
+    const map = new Map<number, ReturnType<typeof groupFindingsByQuestion>[number]>();
+    for (const g of groupFindingsByQuestion(analysis.questions, analysis.questioningFindings)) {
+      if (!map.has(g.question.segment.index)) map.set(g.question.segment.index, g);
+    }
+    return map;
+  }, [analysis.questions, analysis.questioningFindings]);
+
+  async function requestSuggestion(questionIndex: number) {
+    const group = groupsByQuestion.get(questionIndex);
+    if (!group || inFlight.current.has(questionIndex)) return;
+    inFlight.current.add(questionIndex);
+    setPendingSuggestionIndices((prev) => new Set(prev).add(questionIndex));
+    setFailedSuggestionIndices((prev) => {
+      const next = new Set(prev);
+      next.delete(questionIndex);
+      return next;
+    });
+    try {
+      const res = await fetch("/api/suggestion", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          questionIndex,
+          question: group.question,
+          findings: group.findings,
+          transcript: { meta: analysis.transcript.meta, segments: analysis.transcript.segments.slice(0, questionIndex + 2) },
+          conceptMatch: analysis.conceptMatch,
+          waitTimeEvaluation: analysis.waitTimeEvaluations.find((e) => e.question.segment.index === questionIndex) ?? null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.suggestion) throw new Error(data.error ?? "개선안 없음");
+      const next = [...suggestionsRef.current.filter((s) => s.questionIndex !== questionIndex), data.suggestion as Suggestion].sort(
+        (a, b) => a.questionIndex - b.questionIndex
+      );
+      suggestionsRef.current = next;
+      setSuggestions(next);
+      await saveLesson(name, { ...analysis, suggestions: next });
+    } catch {
+      setFailedSuggestionIndices((prev) => new Set(prev).add(questionIndex));
+    } finally {
+      inFlight.current.delete(questionIndex);
+      setPendingSuggestionIndices((prev) => {
+        const next = new Set(prev);
+        next.delete(questionIndex);
+        return next;
+      });
+    }
+  }
+
+  useEffect(() => {
+    if (!analysis.suggestionsDeferred || selectedSegmentIndex === null) return;
+    for (const q of relatedQuestionIndices(analysis.questioningFindings, selectedSegmentIndex, ignoredFindingIds)) {
+      const alreadyHave = suggestionsRef.current.some((s) => s.questionIndex === q);
+      if (!alreadyHave && groupsByQuestion.has(q) && !failedSuggestionIndices.has(q)) requestSuggestion(q);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSegmentIndex, ignoredFindingIds]);
 
   function toggleIgnore(id: string) {
     const next = new Set(ignoredFindingIds);
@@ -175,7 +249,10 @@ export function LessonView({
         <DetailPanel
           selectedSegmentIndex={selectedSegmentIndex}
           questioningFindings={analysis.questioningFindings}
-          suggestions={analysis.suggestions}
+          suggestions={suggestions}
+          pendingSuggestionIndices={pendingSuggestionIndices}
+          failedSuggestionIndices={failedSuggestionIndices}
+          onRetrySuggestion={requestSuggestion}
           ignoredFindingIds={ignoredFindingIds}
           onToggleIgnore={toggleIgnore}
           onClose={() => setSelectedSegmentIndex(null)}

@@ -108,7 +108,8 @@ async function runFromCachedAnalysis(sourceFile: string, ignoredArg: string) {
  */
 export async function analyzeTranscript(
   transcript: NormalizedTranscript,
-  sourceFile: string
+  sourceFile: string,
+  options: { deferSuggestions?: boolean } = {}
 ): Promise<AnalysisResult> {
   console.log(`  → 학년: ${transcript.meta.grade}, 세그먼트 ${transcript.segments.length}개`);
 
@@ -179,6 +180,48 @@ export async function analyzeTranscript(
     printQuestioningGroup(questioningFindings, id);
   }
 
+  // 웹(/api/analyze)은 개선안을 미리 만들지 않는다 — 분석 시간의 큰 몫이라, 보고서에서
+  // 교사가 발화를 누를 때 /api/suggestion이 그 발문 것만 만든다.
+  const { suggestions, stats } = options.deferSuggestions
+    ? { suggestions: [], stats: { scopeCorrections: {}, regenerationFailures: {} } }
+    : await runSuggestionStage(transcript, questions, questioningFindings, conceptMatch, waitTimeEvaluations);
+
+  console.log("\n[6단계] 수업 전체 평가 리포트");
+  const report = await generateLessonReport({
+    transcript,
+    questions,
+    questioningFindings,
+    vocabFindings,
+    waitTimeEvaluations,
+    responseEvents,
+    probingResults,
+  });
+
+  return {
+    sourceFile,
+    runAt: new Date().toISOString(),
+    transcript,
+    conceptMatch,
+    vocabFindings,
+    questions,
+    questioningFindings,
+    waitTimeEvaluations,
+    responseEvents,
+    probingResults,
+    suggestions,
+    suggestionStats: stats,
+    ...(options.deferSuggestions ? { suggestionsDeferred: true } : {}),
+    report,
+  };
+}
+
+async function runSuggestionStage(
+  transcript: NormalizedTranscript,
+  questions: Parameters<typeof generateImprovements>[1],
+  questioningFindings: QuestioningFinding[],
+  conceptMatch: Parameters<typeof generateImprovements>[3],
+  waitTimeEvaluations: Parameters<typeof generateImprovements>[4]
+) {
   console.log("\n[5단계] 개선안 생성");
   const { suggestions, stats } = await generateImprovements(
     transcript,
@@ -223,32 +266,7 @@ export async function analyzeTranscript(
     console.log(`  - ${VALIDATION_CATEGORY_LABELS[key] ?? key}: ${count}건`);
   }
 
-  console.log("\n[6단계] 수업 전체 평가 리포트");
-  const report = await generateLessonReport({
-    transcript,
-    questions,
-    questioningFindings,
-    vocabFindings,
-    waitTimeEvaluations,
-    responseEvents,
-    probingResults,
-  });
-
-  return {
-    sourceFile,
-    runAt: new Date().toISOString(),
-    transcript,
-    conceptMatch,
-    vocabFindings,
-    questions,
-    questioningFindings,
-    waitTimeEvaluations,
-    responseEvents,
-    probingResults,
-    suggestions,
-    suggestionStats: stats,
-    report,
-  };
+  return { suggestions, stats };
 }
 
 async function main() {

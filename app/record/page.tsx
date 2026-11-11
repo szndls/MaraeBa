@@ -18,9 +18,10 @@ const CHUNK_SECONDS = 10 * 60;
 // Vercel 요청 본문 한도(4.5MB)보다 조금 낮게 잡은 업로드 허용 크기 — 10분 조각은
 // 16kbps 기준 약 1.2MB라 평소엔 안 걸리지만, 혹시 모를 긴 조각에 대한 안전장치
 const MAX_CHUNK_AUDIO_BYTES = 4 * 1024 * 1024;
-// 분석(/api/analyze)이 Vercel 300초 안에 끝나는 최대 수업 길이. 실측: 2.6분 118초,
-// 10.6분 251초, 21.1분 438초 — 10분이면 약 240초로 재시도·네트워크 변동 여유가 남는다.
-const MAX_RECORDING_MINUTES = 10;
+// 분석(/api/analyze)이 Vercel 300초 안에 끝나는 최대 수업 길이. 개선안을 나중에 만들게
+// 바꾼 뒤 실측: 2.6분 22초, 10.6분 41초, 21.1분 64초, 42.4분 110초(수업 1분당 약 2.2초).
+// 60분은 약 150초로 추정 — 측정 범위(42분) 밖이라 2배 여유를 두고 60분에서 끊는다.
+const MAX_RECORDING_MINUTES = 60;
 const MAX_RECORDING_SECONDS = MAX_RECORDING_MINUTES * 60;
 // 자동 종료 시각과 조각 전환 시각이 겹치면 1초 미만의 빈 조각이 생길 수 있어 건너뛴다(16kbps ≈ 2KB/초)
 const MIN_CHUNK_AUDIO_BYTES = 4 * 1024;

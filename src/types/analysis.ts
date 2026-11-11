@@ -27,6 +27,9 @@ export interface AnalysisResult {
   probingResults: ResponseProbingResult[];
   suggestions: Suggestion[];
   suggestionStats: ImprovementStats;
+  /** true면 분석 때 개선안을 만들지 않았다 — 보고서에서 발화를 누를 때 /api/suggestion으로
+   *  그 발문 것만 만들어 suggestions에 채워 넣는다. 없거나 false면 미리 다 만들어져 있다. */
+  suggestionsDeferred?: boolean;
   /** 무시 목록 없이 처음 계산한 기준 리포트 — L5·L8처럼 LLM이 만든 결과는 여기서 그대로 재사용된다. */
   report: LessonReport;
 }

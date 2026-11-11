@@ -23,7 +23,8 @@ export async function POST(req: Request) {
   const name = `lesson-${now.getFullYear()}${p(now.getMonth() + 1)}${p(now.getDate())}-${p(now.getHours())}${p(now.getMinutes())}${p(now.getSeconds())}`;
 
   try {
-    const analysis = await analyzeTranscript(body.transcript, name);
+    // 개선안(5단계)은 여기서 만들지 않는다 — 보고서에서 발화를 누를 때 /api/suggestion이 만든다
+    const analysis = await analyzeTranscript(body.transcript, name, { deferSuggestions: true });
     return Response.json(analysis);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
