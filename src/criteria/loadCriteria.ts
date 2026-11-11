@@ -1,10 +1,10 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import yaml from "js-yaml";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const CRITERIA_DIR = path.resolve(__dirname, "../../criteria");
+// 기준 파일 폴더는 "앱을 실행한 위치(프로젝트 맨 위)" 기준으로 찾는다.
+// (예전처럼 이 파일 위치 기준으로 찾으면 Vercel에서는 빌드할 때의 경로가 박혀서 파일을 못 찾는다)
+const CRITERIA_DIR = path.join(process.cwd(), "criteria");
 
 /**
  * criteria/*.yaml 파일을 읽어서 텍스트 그대로 LLM 프롬프트에 넣을 수 있게 직렬화한다.

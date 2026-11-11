@@ -14,6 +14,7 @@ const nextConfig: NextConfig = {
   // 깨지므로 명시적으로 포함시킨다.
   outputFileTracingIncludes: {
     "/api/*": ["./criteria/**/*"],
+    "/api/**/*": ["./criteria/**/*"],
   },
 };
 
