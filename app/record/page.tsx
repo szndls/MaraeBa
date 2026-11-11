@@ -181,6 +181,9 @@ export default function RecordPage() {
         .map((s, index) => ({ ...s, index }));
 
       if (segments.length === 0) throw new Error("받아쓴 내용이 없어요. 다시 녹음해 주세요.");
+      if (!segments.some((s) => s.speaker === "teacher" && s.text.trim() !== "")) {
+        throw new Error("녹음에서 선생님 목소리를 찾지 못했어요. 마이크 가까이에서 말하며 다시 녹음해 주세요.");
+      }
 
       const transcript: NormalizedTranscript = {
         meta: { grade, source: "gpt-4o-transcribe-diarize", time_unit: "seconds" },
