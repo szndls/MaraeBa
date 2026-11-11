@@ -116,21 +116,33 @@ export async function analyzeTranscript(
   console.log("[2단계] 개념 추측 + 성취기준 연결 (LLM)");
   const conceptMatch = await matchConcept(transcript);
 
+  const conceptMatched = conceptMatch.matched !== false;
+
   console.log("\n=== 2단계 결과 ===");
   console.log(`학년군: ${conceptMatch.band} (${conceptMatch.grade}학년)`);
-  console.log(`영역: ${conceptMatch.areaName}`);
-  console.log(`성취기준: ${conceptMatch.standardCode} — ${conceptMatch.standardSummary}`);
+  if (conceptMatched) {
+    console.log(`영역: ${conceptMatch.areaName}`);
+    console.log(`성취기준: ${conceptMatch.standardCode} — ${conceptMatch.standardSummary}`);
+  } else {
+    console.log("성취기준: 관련 성취기준 없음 (초등 수학과 관련 없는 수업으로 판단)");
+  }
   console.log(`판단 근거: ${conceptMatch.rationale}`);
   console.log("근거 발화:");
   for (const seg of conceptMatch.evidenceSegments) {
     console.log(`  [${seg.index}] "${seg.text}"`);
   }
-  console.log("\n[3단계] 용어 탐지 (코드: 목록 대조 / LLM: 목록 외 어려운 어휘)");
-  const knownTermFindings = detectKnownTerms(transcript, conceptMatch);
-  const hardWordFindings = isUnlistedHardWordDetectionEnabled()
-    ? await detectHardWords(transcript, transcript.meta.grade)
-    : [];
-  const vocabFindings: VocabFinding[] = [...knownTermFindings, ...hardWordFindings];
+  // 성취기준과 연결되지 않으면 "진도상 아직 안 배운 용어"를 판단할 기준점이 없어 3단계를 건너뛴다
+  let vocabFindings: VocabFinding[] = [];
+  if (conceptMatched) {
+    console.log("\n[3단계] 용어 탐지 (코드: 목록 대조 / LLM: 목록 외 어려운 어휘)");
+    const knownTermFindings = detectKnownTerms(transcript, conceptMatch);
+    const hardWordFindings = isUnlistedHardWordDetectionEnabled()
+      ? await detectHardWords(transcript, transcript.meta.grade)
+      : [];
+    vocabFindings = [...knownTermFindings, ...hardWordFindings];
+  } else {
+    console.log("\n[3단계] 용어 탐지 — 관련 성취기준이 없어 건너뜀");
+  }
 
   console.log("\n=== 3단계 결과 ===");
   printVocabGroup(vocabFindings, "certain_unknown", "아직 모름 확정");
@@ -195,6 +207,7 @@ export async function analyzeTranscript(
     waitTimeEvaluations,
     responseEvents,
     probingResults,
+    conceptMatched,
   });
 
   return {

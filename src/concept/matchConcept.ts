@@ -4,6 +4,9 @@ import { getAnalysisModel, getOpenAIClient } from "../llm/client.js";
 import { loadConceptGuessGuidelinesText } from "../criteria/loadCriteria.js";
 import { buildStandardsCatalog, getGradeBandForGrade } from "../criteria/loadMathTerms.js";
 
+/** 녹음 내용이 초등 수학과 관련이 없을 때 LLM이 고르는 값 — 성취기준 코드 목록에 같이 넣는다 */
+const NO_MATCH_CODE = "NONE";
+
 function buildSystemPrompt(standardCodes: string[]): string {
   const guidelines = loadConceptGuessGuidelinesText();
 
@@ -14,6 +17,9 @@ ${guidelines}
 
 standardCode는 반드시 아래 목록 중 하나여야 합니다:
 ${standardCodes.join(", ")}
+
+수업 내용이 초등 수학과 관련이 없으면(위 판단 기준의 no_match 참고) 억지로 고르지 말고
+standardCode에 "${NO_MATCH_CODE}"를 넣으세요.
 
 evidenceSegmentIndices에는 판단 근거로 삼은 교사 발화의 id를 넣으세요 (1개 이상).`;
 }
@@ -64,7 +70,7 @@ export async function matchConcept(transcript: NormalizedTranscript): Promise<Co
         schema: {
           type: "object",
           properties: {
-            standardCode: { type: "string", enum: standardCodes },
+            standardCode: { type: "string", enum: [...standardCodes, NO_MATCH_CODE] },
             evidenceSegmentIndices: {
               type: "array",
               minItems: 1,
@@ -84,16 +90,31 @@ export async function matchConcept(transcript: NormalizedTranscript): Promise<Co
 
   const parsed = JSON.parse(content) as LlmConceptResult;
 
+  const evidenceSegments = transcript.segments.filter((s) =>
+    parsed.evidenceSegmentIndices.includes(s.index)
+  );
+
+  if (parsed.standardCode === NO_MATCH_CODE) {
+    return {
+      matched: false,
+      grade,
+      band: band.band,
+      areaName: "",
+      standardCode: "",
+      standardSummary: "",
+      rationale: parsed.rationale,
+      evidenceSegments,
+      source: "ai",
+    };
+  }
+
   const catalogEntry = catalog.find((c) => c.code === parsed.standardCode);
   if (!catalogEntry) {
     throw new Error(`LLM이 목록에 없는 성취기준 코드를 반환했습니다: ${parsed.standardCode}`);
   }
 
-  const evidenceSegments = transcript.segments.filter((s) =>
-    parsed.evidenceSegmentIndices.includes(s.index)
-  );
-
   return {
+    matched: true,
     grade,
     band: band.band,
     areaName: catalogEntry.areaName,

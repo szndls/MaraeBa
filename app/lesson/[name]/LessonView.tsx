@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { AnalysisResult } from "../../../src/types/analysis.js";
 import type { LessonReport } from "../../../src/types/report.js";
 import type { Suggestion } from "../../../src/types/suggestion.js";
+import { UNMATCHED_LESSON_TITLE } from "../../../src/types/concept.js";
 import { computeFindingId } from "../../../src/report/findingId.js";
 import { groupFindingsByQuestion } from "../../../src/suggestions/groupFindingsByQuestion.js";
 import { relatedQuestionIndices } from "../../lib/relatedQuestions.js";
@@ -33,6 +34,8 @@ export function LessonView({
   severityOrder: string[];
   initiallySaved: boolean;
 }) {
+  const conceptMatched = analysis.conceptMatch.matched !== false;
+
   // 저장하기: 누르면 기록 목록에 들어간다
   const [isSaved, setIsSaved] = useState(initiallySaved);
   const [isSaving, setIsSaving] = useState(false);
@@ -221,10 +224,14 @@ export function LessonView({
           <div className="bg-chalk px-5 py-5 text-white">
             <div className="mb-1 flex items-center gap-2 text-xs font-medium text-white/70">
               <span>{analysis.conceptMatch.grade}학년 수학</span>
-              <span className="rounded-full bg-white/15 px-2 py-0.5">{analysis.conceptMatch.standardCode}</span>
+              {conceptMatched && (
+                <span className="rounded-full bg-white/15 px-2 py-0.5">{analysis.conceptMatch.standardCode}</span>
+              )}
               {isRecomputing && <span className="ml-auto animate-pulse">다시 계산하는 중…</span>}
             </div>
-            <h1 className="text-xl font-bold leading-snug sm:text-2xl">{analysis.conceptMatch.standardSummary}</h1>
+            <h1 className="text-xl font-bold leading-snug sm:text-2xl">
+              {conceptMatched ? analysis.conceptMatch.standardSummary : UNMATCHED_LESSON_TITLE}
+            </h1>
           </div>
           <Legend activeFilters={activeFilters} onToggle={toggleFilter} counts={groupCounts} />
         </section>

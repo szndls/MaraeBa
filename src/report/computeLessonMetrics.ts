@@ -203,8 +203,18 @@ function dedupeOverlappingTerms(findings: VocabFinding[]): VocabFinding[] {
 }
 
 /** L7: 진도상 모를 수 있는 용어 — "아직 모름 확정"이 1개 이상이면 개선 필요, 없으면 좋음. */
-export function computeL7(vocabFindings: VocabFinding[]): MetricResult {
+export function computeL7(vocabFindings: VocabFinding[], conceptMatched = true): MetricResult {
   const metric = getLessonMetric("L7");
+  if (!conceptMatched) {
+    return {
+      id: "L7",
+      name: metric.name,
+      grade: null,
+      detail: "초등 수학 성취기준과 연결되지 않은 수업이라 용어 검사를 하지 않음",
+      isTemporaryCriteria: isTemporaryCriteria(metric),
+      evidenceSegmentIndices: [],
+    };
+  }
   const certainUnknown = dedupeOverlappingTerms(vocabFindings.filter((v) => v.category === "certain_unknown"));
 
   return {

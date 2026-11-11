@@ -16,6 +16,8 @@ export interface LessonReportInputs {
   waitTimeEvaluations: WaitTimeEvaluation[];
   responseEvents: ResponseEvent[];
   probingResults: ResponseProbingResult[];
+  /** 2단계에서 관련 성취기준을 찾았는지 — 못 찾으면 L7은 "검사 안 함"으로 표시 */
+  conceptMatched: boolean;
 }
 
 /**
@@ -32,7 +34,7 @@ export async function generateLessonReport(inputs: LessonReportInputs): Promise<
   const l3 = computeL3(transcript, responseEvents);
   const l4 = computeL4(probingResults);
   const { metric: l6, priorityFixes } = computeL6(questioningFindings);
-  const l7 = computeL7(vocabFindings);
+  const l7 = computeL7(vocabFindings, inputs.conceptMatched);
   const { metric: l5, warnings: l5Warnings } = await judgeL5(questions);
   const l8 = await judgeL8(transcript);
 

@@ -36,7 +36,7 @@ export function recomputeReportFromAnalysis(
   const l3 = computeL3(transcript, responseEvents);
   const l4 = computeL4(probingResults);
   const { metric: l6, priorityFixes } = computeL6(filteredFindings);
-  const l7 = computeL7(vocabFindings);
+  const l7 = computeL7(vocabFindings, analysis.conceptMatch.matched !== false);
   const l5 = findMetric(analysis.report.metrics, "L5");
   const l8 = findMetric(analysis.report.metrics, "L8");
 

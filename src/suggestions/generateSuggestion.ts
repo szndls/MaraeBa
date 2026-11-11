@@ -1,5 +1,5 @@
 import type { NormalizedTranscript } from "../types/transcript.js";
-import type { ConceptMatch } from "../types/concept.js";
+import { UNMATCHED_LESSON_TITLE, type ConceptMatch } from "../types/concept.js";
 import type { QuestionFindingsGroup } from "../types/suggestion.js";
 import { getAnalysisModel, getOpenAIClient } from "../llm/client.js";
 import { requestBatchInChunks } from "../llm/batchWithRetry.js";
@@ -164,8 +164,8 @@ async function callLlm(
         prevContext: transcript.segments[idx - 1]?.text ?? null,
         nextContext: transcript.segments[idx + 1]?.text ?? null,
         grade: transcript.meta.grade,
-        standardCode: conceptMatch.standardCode,
-        standardSummary: conceptMatch.standardSummary,
+        standardCode: conceptMatch.matched === false ? null : conceptMatch.standardCode,
+        standardSummary: conceptMatch.matched === false ? UNMATCHED_LESSON_TITLE : conceptMatch.standardSummary,
         findings: group.findings
           .filter((f) => f.criterionId !== "Q5")
           .map((f) => ({
