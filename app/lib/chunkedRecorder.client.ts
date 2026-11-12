@@ -22,7 +22,7 @@ export function startChunkedRecording(
 
   function beginChunk(forOffsetSeconds: number) {
     const chunks: Blob[] = [];
-    const current = new MediaRecorder(stream, { mimeType: mimeType || undefined, audioBitsPerSecond: 16000 });
+    const current = new MediaRecorder(stream, { mimeType: mimeType || undefined, audioBitsPerSecond: 32000 });
     current.ondataavailable = (e) => {
       if (e.data.size > 0) chunks.push(e.data);
     };

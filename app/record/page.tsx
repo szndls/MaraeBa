@@ -16,15 +16,21 @@ const VOICE_SECONDS = 8;
 // 긴 수업도 지원하려고 이 간격마다 녹음을 조각내서 따로 받아쓴다(화면은 끊김 없이 이어짐)
 const CHUNK_SECONDS = 10 * 60;
 // Vercel 요청 본문 한도(4.5MB)보다 조금 낮게 잡은 업로드 허용 크기 — 10분 조각은
-// 16kbps 기준 약 1.2MB라 평소엔 안 걸리지만, 혹시 모를 긴 조각에 대한 안전장치
+// 32kbps 기준 약 2.3MB(32,000bit × 600초 ÷ 8)라 평소엔 안 걸리지만, 혹시 모를 긴 조각에 대한 안전장치
 const MAX_CHUNK_AUDIO_BYTES = 4 * 1024 * 1024;
 // 분석(/api/analyze)이 Vercel 300초 안에 끝나는 최대 수업 길이. 개선안을 나중에 만들게
 // 바꾼 뒤 실측: 2.6분 22초, 10.6분 41초, 21.1분 64초, 42.4분 110초(수업 1분당 약 2.2초).
 // 60분은 약 150초로 추정 — 측정 범위(42분) 밖이라 2배 여유를 두고 60분에서 끊는다.
 const MAX_RECORDING_MINUTES = 60;
 const MAX_RECORDING_SECONDS = MAX_RECORDING_MINUTES * 60;
-// 자동 종료 시각과 조각 전환 시각이 겹치면 1초 미만의 빈 조각이 생길 수 있어 건너뛴다(16kbps ≈ 2KB/초)
+// 자동 종료 시각과 조각 전환 시각이 겹치면 1초 미만의 빈 조각이 생길 수 있어 건너뛴다(32kbps ≈ 4KB/초)
 const MIN_CHUNK_AUDIO_BYTES = 4 * 1024;
+
+// 브라우저 기본 처리(잡음 제거·에코 제거)가 마이크에서 먼 학생 목소리를 잡음으로 보고
+// 지워 버려서 끈다. 자동 음량 조절은 켜 둬서 작은 목소리도 키운다.
+const MIC_CONSTRAINTS: MediaStreamConstraints = {
+  audio: { noiseSuppression: false, echoCancellation: false, autoGainControl: true },
+};
 
 /** 브라우저가 지원하는 녹음 형식 고르기 (크롬: webm, 사파리: mp4) */
 function pickMime(): string {
@@ -36,7 +42,7 @@ function pickMime(): string {
 
 /** 짧은 단발 녹음(목소리 샘플용) — stop()을 부르면 녹음 파일(Blob)을 돌려준다 */
 async function startRecorder() {
-  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  const stream = await navigator.mediaDevices.getUserMedia(MIC_CONSTRAINTS);
   const mimeType = pickMime();
   const rec = new MediaRecorder(stream, { mimeType: mimeType || undefined, audioBitsPerSecond: 16000 });
   const chunks: Blob[] = [];
@@ -153,7 +159,7 @@ export default function RecordPage() {
       localStorage.setItem("balmun-grade", String(grade));
     } catch {}
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia(MIC_CONSTRAINTS);
       pendingChunks.current = [];
       lessonRecorder.current = startChunkedRecording(stream, pickMime(), CHUNK_SECONDS, (blob, offsetSeconds) => {
         pendingChunks.current.push(transcribeChunk(blob, offsetSeconds));
